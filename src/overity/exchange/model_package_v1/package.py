@@ -88,9 +88,10 @@ def _process_model_file(
             f"Indicated model_file, '{metadata.model_file}', is not found in archive",
         )
 
-    with open(target_folder / metadata.model_file, "wb") as ftarget, tf.extractfile(
-        model_file
-    ) as fmod:
+    with (
+        open(target_folder / metadata.model_file, "wb") as ftarget,
+        tf.extractfile(model_file) as fmod,
+    ):
         ftarget.write(fmod.read())
         ftarget.flush()
 

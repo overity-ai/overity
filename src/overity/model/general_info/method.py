@@ -27,9 +27,6 @@ class MethodKind(Enum):
     """Measurement and qualification is to assess requirements and performances on a model"""
     MeasurementQualification = "measurement_qualification"
 
-    """Deployment method is to deploy the method on execution target"""
-    Deployment = "deployment"
-
     """Analysis method is to do comparative analysis"""
     Analysis = "analysis"
 

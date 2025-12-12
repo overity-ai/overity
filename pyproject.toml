@@ -12,7 +12,7 @@ name            = "overity"
 dynamic         = ["version"]
 description     = 'MLOps oriented framework for trustworthy Edge-AI'
 readme          = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 license         = "Apache-2.0"
 keywords        = []
 
@@ -102,6 +102,8 @@ venvPath = ".hatch"
 venv = "hatch-test.py3.13"
 
 
+
+
 ##################################################
 # Environments configuration
 ##################################################
@@ -177,3 +179,9 @@ code-headers     = "scripts/header_check.py src"
 
 # Linting report using SARIF format for automation
 code-rules-sarif = "ruff check src --output-format sarif -o .lint.sarif"
+
+
+## ---------------------------- Testing environment
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.12", "3.13", "3.14"]

@@ -246,8 +246,6 @@ class StorageBackend(ABC):
             return self.optimization_report_uuid_get()
         elif kind == MethodKind.MeasurementQualification:
             return self.execution_report_uuid_get()
-        elif kind == MethodKind.Deployment:
-            return self.execution_report_uuid_get()
         elif kind == MethodKind.Analysis:
             return self.analysis_report_uuid_get()
 

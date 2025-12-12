@@ -172,8 +172,6 @@ class LocalStorage(StorageBackend):
             return self._optimization_report_path(run_uuid)
         elif method_kind == MethodKind.MeasurementQualification:
             return self._execution_report_path(run_uuid)
-        elif method_kind == MethodKind.Deployment:
-            return self._execution_report_path(run_uuid)
         elif method_kind == MethodKind.Analysis:
             return self._analysis_report_path(run_uuid)
 
@@ -356,8 +354,6 @@ class LocalStorage(StorageBackend):
             return MethodKind.TrainingOptimization
         elif pp.is_relative_to(self.measurement_qualification_folder):
             return MethodKind.MeasurementQualification
-        elif pp.is_relative_to(self.deployment_folder):
-            return MethodKind.Deployment
         elif pp.is_relative_to(self.analysis_folder):
             return MethodKind.Analysis
         else:
