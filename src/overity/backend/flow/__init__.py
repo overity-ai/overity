@@ -271,7 +271,11 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
         ctx.bench_abstraction = b_bench.load_bench_abstraction_infos(
             ctx.pdir, ctx.bench_infos.abstraction_slug
         )
-        ctx.bench_instance = b_bench.instanciate(ctx.pdir, bench_slug)
+        ctx.bench_instance = b_bench.instanciate(
+            program_path=ctx.pdir,
+            bench_slug=bench_slug,
+            storage=ctx.storage,
+        )
 
         # -> Traceability information
         k_bench = ArtifactKey(kind=ArtifactKind.BenchInstanciation, id=bench_slug)
@@ -327,17 +331,21 @@ def exception_handler(ctx: FlowCtx, exc_type, exc_value, exc_traceback):
 def exit_handler(ctx: FlowCtx):
     log.info("Exiting method execution")
 
-    # Bench cleanup if in DMQ method
     if ctx.method_kind == MethodKind.MeasurementQualification:
+        # Bench cleanup if in DMQ method
         log.info("Bench cleanup")
         try:
             if ctx.bench_instance:
                 ctx.bench_instance.bench_cleanup()
+                ctx.bench_instance.tmpdir_cleanup()
 
         except Exception as exc:
             log.error("Error when trying to stop the bench")
             ctx.exceptions.append(exc)
             log.error("".join(traceback.format_exception(exc)))
+
+        # Merge bench traceability graph into main report graph
+        ctx.report.traceability_graph += ctx.bench_instance.traceability_graph
 
     # Set end date
     ctx.report.date_ended = dt.now()
@@ -492,37 +500,6 @@ def model_package(
         ctx.report.traceability_graph.metadata_store(
             model_key, "sha256", sha256.hexdigest()
         )
-
-
-@_api_guard
-def agent_use(ctx, slug: str):
-    log.info(f"Search for agent: {slug}")
-
-    tmpdir = tempfile.TemporaryDirectory()
-    tmpdir_path = Path(tmpdir.name).resolve()
-
-    pkginfo = ctx.storage.inference_agent_load(slug, tmpdir_path)
-
-    # Traceability information
-    # TODO add hash information
-    # -> Artifact key for agent
-    agent_key = ArtifactKey(
-        kind=ArtifactKind.InferenceAgent,
-        id=slug,
-    )
-
-    # -> Agent use for run
-    ctx.report.traceability_graph.add(
-        ArtifactLink(
-            a=ctx.report.run_key,
-            b=agent_key,
-            kind=ArtifactLinkKind.InferenceAgentUse,
-        )
-    )
-
-    ctx.tmpdirs.append(tmpdir)
-
-    return tmpdir_path / "data", pkginfo
 
 
 @_api_guard

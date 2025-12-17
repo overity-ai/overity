@@ -15,6 +15,7 @@ import logging
 
 from pathlib import Path
 
+from overity.storage.base import StorageBackend
 from overity.storage.local import LocalStorage
 from overity.errors import InvalidBenchSettingsError, BenchInstanciationError
 
@@ -68,32 +69,42 @@ def load_bench_abstraction_infos(program_path: Path, slug: str):
     return bench_abstraction
 
 
-def instanciate(program_path: Path, bench_slug: str):
+def instanciate(program_path: Path, bench_slug: str, storage: StorageBackend):
     # Load program information
     program_path = Path(program_path)
     st = LocalStorage(program_path)
 
     # Import bench metadata
-    bench = st.bench_load_infos(bench_slug)
+    bench_metadata = st.bench_load_infos(bench_slug)
     log.info(
-        f"Instanciate bench '{bench.display_name}' ({bench.slug}) from {bench.abstraction_slug}"
+        f"Instanciate bench '{bench_metadata.display_name}' ({bench_metadata.slug}) from {bench_metadata.abstraction_slug}"
+    )
+
+    # Import bench abstraction metadata
+    bench_abstraction_metadata = st.bench_abstraction_import_infos(
+        bench_metadata.abstraction_slug
     )
 
     # Import bench definitions
     BenchSettings, BenchDefinition = st.bench_abstraction_import_definitions(
-        bench.abstraction_slug
+        bench_metadata.abstraction_slug
     )
 
     # Parse bench settings
     try:
-        bench_settings = BenchSettings(**bench.settings)
+        bench_settings = BenchSettings(**bench_metadata.settings)
     except Exception as exc:
-        raise InvalidBenchSettingsError(bench_slug, bench.settings, exc)
+        raise InvalidBenchSettingsError(bench_slug, bench_metadata.settings, exc)
 
     # Instanciate bench
     try:
-        bench_instance = BenchDefinition(bench_settings)
+        bench_instance = BenchDefinition(
+            settings=bench_settings,
+            storage_backend=storage,
+            abstraction_infos=bench_abstraction_metadata,
+            instance_infos=bench_metadata,
+        )
     except Exception as exc:
-        raise BenchInstanciationError(bench_slug, bench.settings, exc)
+        raise BenchInstanciationError(bench_slug, bench_metadata.settings, exc)
 
     return bench_instance
