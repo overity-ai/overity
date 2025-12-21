@@ -107,6 +107,34 @@ class BenchAbstraction(ABC):
 
         return tmpdir_path / "data", pkginfo
 
+    def _dataset_use(self, slug: str):
+        # FIXME: Duplicate with dataset_use in flow backend code?
+
+        self.log.info(f"Search for dataset: {slug}")
+
+        tmpdir = tempfile.TemporaryDirectory()
+        tmpdir_path = Path(tmpdir.name).resolve()
+
+        pkginfo = self.storage.dataset_load(slug, tmpdir_path)
+
+        # Add traceability
+        # FIXME: Missing hash information
+        # -> Create artifact key for dataset
+        dataset_key = ArtifactKey(kind=ArtifactKind.Dataset, id=slug)
+
+        # -> Dataset use for bench
+        self.traceability_graph.add(
+            ArtifactLink(
+                kind=ArtifactLinkKind.DatasetUse,
+                a=self.key_abstraction,
+                b=dataset_key,
+            )
+        )
+
+        self.tmpdirs.add(tmpdir)
+
+        return tmpdir_path / "data", pkginfo
+
     ####################################################
     # Public common interface
     ####################################################
