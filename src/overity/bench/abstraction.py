@@ -15,9 +15,26 @@ TODO: Parameters for base methods
 """
 
 from __future__ import annotations
+
+import tempfile
+import logging
+
 from abc import ABC, abstractmethod
 
 from overity.model.ml_model.metadata import MLModelMetadata
+from overity.model.traceability import (
+    ArtifactKind,
+    ArtifactLinkKind,
+    ArtifactKey,
+    ArtifactLink,
+    ArtifactGraph,
+)
+from overity.model.general_info.bench import (
+    BenchAbstractionMetadata,
+    BenchInstanciationMetadata,
+)
+from overity.storage.base import StorageBackend
+
 from pathlib import Path
 
 
@@ -26,9 +43,110 @@ class BenchAbstraction(ABC):
     Base class to define a bench abstraction
     """
 
-    def __init__(self, settings: any):
+    def __init__(
+        self,
+        settings: any,
+        storage_backend: StorageBackend,
+        abstraction_infos: BenchAbstractionMetadata,
+        instance_infos: BenchInstanciationMetadata,
+    ):
+
+        self.traceability_graph = (
+            ArtifactGraph()
+        )  # Bench abstraction has its own traceability graph
+        self.storage = (
+            storage_backend  # Bench abstraction can call the available storage backend
+        )
+        self.log = logging.getLogger("Bench")  # TODO: name for bench
+
+        self.abstraction_infos = abstraction_infos
+        self.instance_infos = instance_infos
+
+        self.key_instance = ArtifactKey(
+            kind=ArtifactKind.BenchInstanciation, id=instance_infos.slug
+        )
+        self.key_abstraction = ArtifactKey(
+            kind=ArtifactKind.BenchAbstraction, id=abstraction_infos.slug
+        )
+
         # TODO: Type annotation for bench settings?
         self.__configure__(settings)
+
+        self.tmpdirs = set()
+
+    ####################################################
+    # Private assets use interface
+    ####################################################
+
+    def _agent_use(self, slug: str):
+        self.log.info(f"Search for agent: {slug}")
+
+        tmpdir = tempfile.TemporaryDirectory()
+        tmpdir_path = Path(tmpdir.name).resolve()
+        pkginfo = self.storage.inference_agent_load(slug, tmpdir_path)
+
+        # Traceability information
+        # TODO Add hash information
+        # FIXME Duplicate with flow backend code?
+        # -> Artifact key for agent
+        agent_key = ArtifactKey(
+            kind=ArtifactKind.InferenceAgent,
+            id=slug,
+        )
+
+        # -> Agent use for run
+        self.traceability_graph.add(
+            ArtifactLink(
+                kind=ArtifactLinkKind.InferenceAgentUse,
+                a=self.key_abstraction,
+                b=agent_key,
+            )
+        )
+
+        self.tmpdirs.add(tmpdir)
+
+        return tmpdir_path / "data", pkginfo
+
+    def _dataset_use(self, slug: str):
+        # FIXME: Duplicate with dataset_use in flow backend code?
+
+        self.log.info(f"Search for dataset: {slug}")
+
+        tmpdir = tempfile.TemporaryDirectory()
+        tmpdir_path = Path(tmpdir.name).resolve()
+
+        pkginfo = self.storage.dataset_load(slug, tmpdir_path)
+
+        # Add traceability
+        # FIXME: Missing hash information
+        # -> Create artifact key for dataset
+        dataset_key = ArtifactKey(kind=ArtifactKind.Dataset, id=slug)
+
+        # -> Dataset use for bench
+        self.traceability_graph.add(
+            ArtifactLink(
+                kind=ArtifactLinkKind.DatasetUse,
+                a=self.key_abstraction,
+                b=dataset_key,
+            )
+        )
+
+        self.tmpdirs.add(tmpdir)
+
+        return tmpdir_path / "data", pkginfo
+
+    ####################################################
+    # Public common interface
+    ####################################################
+
+    def tmpdir_cleanup(self):
+        for tmpdir in self.tmpdirs:
+            self.log.debug(f"Remove temporary directory: {tmpdir}")
+            tmpdir.cleanup()
+
+    ####################################################
+    # User-implemented features
+    ####################################################
 
     @property
     def capabilities(self) -> frozenset[str]:

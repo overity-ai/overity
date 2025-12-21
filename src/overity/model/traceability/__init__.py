@@ -144,3 +144,10 @@ class ArtifactGraph:
             self.metadata[art] = dict()
 
         self.metadata[art][key] = data
+
+    def __add__(self, other):
+        """Merge two traceability graphs together"""
+
+        return ArtifactGraph(
+            links=self.links | other.links, metadata=self.metadata | other.metadata
+        )

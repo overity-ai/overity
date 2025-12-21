@@ -79,10 +79,6 @@ def model_package(slug: str, exchange_format: str, target: str = "agnostic"):
         yield vpkg
 
 
-def agent_use(slug: str):
-    return flow.agent_use(_CTX, slug)
-
-
 def dataset_use(slug: str):
     return flow.dataset_use(_CTX, slug)
 
