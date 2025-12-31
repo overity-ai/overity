@@ -177,6 +177,10 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
         **b_env.platform_info(),
     }
 
+    # Add lib folder to python path
+    log.info(f"Add lib folder to python path: {ctx.storage.lib()}")
+    sys.path.append(str(ctx.storage.lib()))
+
     # Initialize run traceability information
     # TODO: For other types
     # TODO: This is ugly.
