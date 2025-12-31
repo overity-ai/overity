@@ -72,6 +72,10 @@ class StorageBackend(ABC):
     def experiments(self):
         """Get list of experiments definitions registered in program"""
 
+    @abstractmethod
+    def lib(self):
+        """Get path to directory containing additional python modules"""
+
     # -------------------------- Shelf
 
     @abstractmethod

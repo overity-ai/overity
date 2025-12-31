@@ -87,6 +87,7 @@ class LocalStorage(StorageBackend):
         self.bench_abstractions_folder = self.ingredients_folder / "bench_abstraction"
         self.analysis_folder = self.ingredients_folder / "analysis"
         self.experiments_folder = self.ingredients_folder / "experiments"
+        self.lib_folder = self.ingredients_folder / "lib"
 
         self.experiment_runs_folder = self.shelf_folder / "experiment_runs"
         self.optimization_reports_folder = self.shelf_folder / "optimization_reports"
@@ -107,6 +108,7 @@ class LocalStorage(StorageBackend):
             self.bench_abstractions_folder,
             self.analysis_folder,
             self.experiments_folder,
+            self.lib_folder,
             self.experiment_runs_folder,
             self.optimization_reports_folder,
             self.execution_reports_folder,
@@ -392,6 +394,10 @@ class LocalStorage(StorageBackend):
         )
 
         return BenchSettings, BenchDefinition
+
+    def lib(self):
+        """Return the path containing additional python modules for methods implementation"""
+        return self.lib_folder
 
     # -------------------------- Shelf
 
