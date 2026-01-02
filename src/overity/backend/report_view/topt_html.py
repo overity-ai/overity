@@ -24,7 +24,11 @@ from io import StringIO
 from jinja2 import Template
 
 from overity.model.traceability import ArtifactGraph, ArtifactKind
-from overity.model.report import MethodReport, MethodExecutionStatus
+from overity.model.report import (
+    MethodReport,
+    MethodExecutionStatus,
+    MethodExecutionStage,
+)
 from overity.model.report.metrics import (
     Metric,
     SimpleValue,
@@ -134,6 +138,7 @@ TEMPLATE_TXT = dedent(
                                 <li><strong>Started:</strong> {{ date_started }}</li>
                                 <li><strong>Ended:</strong> {{ date_ended }}</li>
                                 <li><strong>Duration:</strong> {{ duration }}</li>
+                                <li><strong>Stage:</strong> {{ execution_stage }}</li>
                                 <li><strong>Status:</strong> {{ execution_status }}</li>
                             </ul>
                         </div>
@@ -404,6 +409,15 @@ def _execution_status_str(x: MethodExecutionStatus) -> str:
     return results[x]
 
 
+def _execution_stage_str(x: MethodExecutionStage) -> str:
+    results = {
+        MethodExecutionStage.Preview: "Preview",
+        MethodExecutionStage.Operation: "Operation",
+    }
+
+    return results[x]
+
+
 def _process_metric(x: Metric):
     if isinstance(x, SimpleValue):
         return f"{x.value:.2f}"
@@ -438,6 +452,7 @@ def render(report_data: MethodReport, report_path: Path | None = None):
         "generation_dt": dt.datetime.now().isoformat(),
         "date_started": report_data.date_started,
         "date_ended": report_data.date_ended,
+        "execution_stage": _execution_stage_str(report_data.stage),
         "execution_status": _execution_status_str(report_data.status),
         "duration": _format_duration(report_data.date_ended - report_data.date_started),
         "installed_packages": installed_packages,

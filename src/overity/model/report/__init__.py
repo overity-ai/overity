@@ -38,6 +38,21 @@ class MethodExecutionStatus(Enum):
     ExecutionSuccess = "execution_success"
 
 
+class MethodExecutionStage(Enum):
+    """Method execution stage
+
+    The method execution stage indicates what is the intended purpose of this run.
+    For instance, it may concern the prototyping/preview stage, or the running/operational
+    phase.
+    """
+
+    """Preview: the user is designing/testing the running method"""
+    Preview = "preview"
+
+    """Operation: this is a 'final' run"""
+    Operation = "operation"
+
+
 class MethodReportKind(Enum):
     Experiment = "experiment"
     TrainingOptimization = "training_optimization"
@@ -59,6 +74,7 @@ class MethodReport:
     program: str  # Name of programme
     date_started: datetime
     date_ended: datetime | None
+    stage: MethodExecutionStage | None
     status: MethodExecutionStatus | None
     environment: dict[str, str]
     context: dict[str, str]
@@ -84,6 +100,7 @@ class MethodReport:
             method_info=method_info,
             date_started=date_started,
             date_ended=date_started,
+            stage=MethodExecutionStage.Preview,
             status=MethodExecutionStatus.ExecutionSuccess,
             environment={},
             context={},

@@ -17,6 +17,7 @@ import json
 from typing import Any
 from pathlib import Path
 from overity.model.report import (
+    MethodExecutionStage,
     MethodExecutionStatus,
     MethodReportLogItem,
     MethodReport,
@@ -116,6 +117,7 @@ def to_file(report: MethodReport, path: Path):
         "program": report.program,
         "date_started": report.date_started.isoformat(),
         "date_ended": report.date_ended.isoformat(),
+        "stage": report.stage.value,
         "status": report.status.value,
         "environment": report.environment,
         "context": report.context,
@@ -205,6 +207,7 @@ def from_file(path: Path):
         program=data["program"],
         date_started=dt.fromisoformat(data["date_started"]),
         date_ended=dt.fromisoformat(data["date_ended"]),
+        stage=MethodExecutionStage(data["stage"]),
         status=MethodExecutionStatus(data["status"]),
         environment=data["environment"],
         context=data["context"],
