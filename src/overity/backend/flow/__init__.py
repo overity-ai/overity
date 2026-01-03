@@ -143,6 +143,10 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
     ctx.run_mode = run_mode
     log.info(f"Running in mode: {run_mode}")
 
+    # Detect execution stage
+    ctx.stage = b_env.execution_stage()
+    log.info(f"Running in stage: {ctx.stage}")
+
     # Get current programme
     ctx.pdir = program.find_current(start_path=method_path.parent)
     log.info(f"Programme directory: {ctx.pdir}")

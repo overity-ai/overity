@@ -20,7 +20,7 @@ from tempfile import TemporaryDirectory
 from overity.model.general_info.program import ProgramInfo
 from overity.model.general_info.method import MethodKind
 from overity.storage.local import LocalStorage
-from overity.model.report import MethodReport
+from overity.model.report import MethodReport, MethodExecutionStage
 from overity.model.traceability import ArtifactKey
 
 from overity.model.general_info.bench import (
@@ -44,6 +44,8 @@ class FlowCtx:
     pinfo: ProgramInfo  # Current program info
     init_ok: bool  # Is Flow init OK?
     run_mode: RunMode  # Current running mode
+
+    stage: MethodExecutionStage  # current execution stage: preview or operation
 
     storage: LocalStorage
     report: MethodReport
@@ -80,6 +82,7 @@ class FlowCtx:
             pinfo=None,
             init_ok=False,
             run_mode=None,
+            stage=None,
             storage=None,
             report=None,
             method_path=None,
