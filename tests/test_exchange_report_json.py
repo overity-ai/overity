@@ -74,6 +74,12 @@ class TestReportJson:
             "loss": SimpleValue(0.05),
         }
 
+        epoch_metrics = {
+            1: {"accuracy": SimpleValue(0.8), "loss": SimpleValue(0.2)},
+            2: {"accuracy": SimpleValue(0.85), "loss": SimpleValue(0.15)},
+            3: {"accuracy": SimpleValue(0.9), "loss": SimpleValue(0.1)},
+        }
+
         original_report = MethodReport(
             uuid="test-uuid-123",
             program="test-program",
@@ -87,6 +93,7 @@ class TestReportJson:
             traceability_graph=artifact_graph,
             logs=logs,
             metrics=metrics,
+            epoch_metrics=epoch_metrics,
             outputs=None,
         )
 
@@ -96,6 +103,8 @@ class TestReportJson:
         try:
             # Encode to file
             to_file(original_report, temp_path)
+
+            print(temp_path.read_text())
 
             # Decode from file
             result = from_file(temp_path)
@@ -152,6 +161,18 @@ class TestReportJson:
             assert result.metrics["accuracy"].data() == metrics["accuracy"].data()
             assert result.metrics["loss"].data() == metrics["loss"].data()
 
+            # Epoch metrics
+            assert len(result.epoch_metrics) == len(epoch_metrics)
+            assert 1 in result.epoch_metrics
+            assert 2 in result.epoch_metrics
+            assert 3 in result.epoch_metrics
+            assert result.epoch_metrics[1]["accuracy"].data() == epoch_metrics[1]["accuracy"].data()
+            assert result.epoch_metrics[1]["loss"].data() == epoch_metrics[1]["loss"].data()
+            assert result.epoch_metrics[2]["accuracy"].data() == epoch_metrics[2]["accuracy"].data()
+            assert result.epoch_metrics[2]["loss"].data() == epoch_metrics[2]["loss"].data()
+            assert result.epoch_metrics[3]["accuracy"].data() == epoch_metrics[3]["accuracy"].data()
+            assert result.epoch_metrics[3]["loss"].data() == epoch_metrics[3]["loss"].data()
+
         finally:
             temp_path.unlink()
 
@@ -176,6 +197,7 @@ class TestReportJson:
             "traceability_graph": {"links": [], "metadata": []},
             "logs": [],
             "metrics": {},
+            "epoch_metrics": {},
         }
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -193,8 +215,82 @@ class TestReportJson:
                 assert len(result.traceability_graph.links) == 0
                 assert len(result.logs) == 0
                 assert len(result.metrics) == 0
+                assert len(result.epoch_metrics) == 0
             finally:
                 Path(f.name).unlink()
+
+    def test_epoch_metrics_round_trip(self):
+        """Test that encoding and decoding epoch metrics works correctly."""
+        # Create test data with epoch metrics
+        method_info = MethodInfo(
+            slug="test-method",
+            kind=MethodKind.TrainingOptimization,
+            display_name="Test Method",
+            authors=[
+                MethodAuthor(
+                    name="John Doe",
+                    email="john@example.com",
+                    contribution="Lead developer",
+                )
+            ],
+            metadata={},
+            description="A test method",
+            path=Path("/path/to/method"),
+        )
+
+        epoch_metrics = {
+            1: {"accuracy": SimpleValue(0.7), "loss": SimpleValue(0.3)},
+            5: {"accuracy": SimpleValue(0.8), "loss": SimpleValue(0.2)},
+            10: {"accuracy": SimpleValue(0.9), "loss": SimpleValue(0.1)},
+        }
+
+        original_report = MethodReport(
+            uuid="test-epoch-metrics",
+            program="test-program",
+            date_started=dt(2023, 1, 1, 10, 0, 0),
+            date_ended=dt(2023, 1, 1, 11, 0, 0),
+            stage=MethodExecutionStage.Preview,
+            status=MethodExecutionStatus.ExecutionSuccess,
+            environment={},
+            context={},
+            method_info=method_info,
+            traceability_graph=ArtifactGraph.default(),
+            logs=[],
+            metrics={},
+            epoch_metrics=epoch_metrics,
+            outputs=None,
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            # Encode to file
+            to_file(original_report, temp_path)
+
+            # Decode from file
+            result = from_file(temp_path)
+
+            # Assertions for epoch metrics
+            assert len(result.epoch_metrics) == len(epoch_metrics)
+            assert 1 in result.epoch_metrics
+            assert 5 in result.epoch_metrics
+            assert 10 in result.epoch_metrics
+            
+            # Check epoch 1 metrics
+            assert result.epoch_metrics[1]["accuracy"].data() == epoch_metrics[1]["accuracy"].data()
+            assert result.epoch_metrics[1]["loss"].data() == epoch_metrics[1]["loss"].data()
+            
+            # Check epoch 5 metrics
+            assert result.epoch_metrics[5]["accuracy"].data() == epoch_metrics[5]["accuracy"].data()
+            assert result.epoch_metrics[5]["loss"].data() == epoch_metrics[5]["loss"].data()
+            
+            # Check epoch 10 metrics
+            assert result.epoch_metrics[10]["accuracy"].data() == epoch_metrics[10]["accuracy"].data()
+            assert result.epoch_metrics[10]["loss"].data() == epoch_metrics[10]["loss"].data()
+
+        finally:
+            temp_path.unlink()
 
     def test_invalid_json_missing_required_field(self):
         """Test that parsing fails for JSON missing required fields."""
@@ -234,6 +330,7 @@ class TestReportJson:
             "traceability_graph": {"links": [], "metadata": []},
             "logs": [],
             "metrics": {},
+            "epoch_metrics": {},
         }
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:

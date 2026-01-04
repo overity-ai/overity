@@ -111,6 +111,10 @@ def _encode_metrics(x: dict[str, Metric]) -> dict[str, Any]:
     return {k: v.data() for k, v in x.items()}
 
 
+def _encode_epoch_metrics(x: dict[int, dict[str, Metric]]):
+    return {str(k): _encode_metrics(v) for k, v in x.items()}
+
+
 def to_file(report: MethodReport, path: Path):
     output_obj = {
         "uuid": report.uuid,
@@ -125,6 +129,7 @@ def to_file(report: MethodReport, path: Path):
         "traceability_graph": _encode_traceability_graph(report.traceability_graph),
         "logs": _encode_logs(report.logs),
         "metrics": _encode_metrics(report.metrics or {}),
+        "epoch_metrics": _encode_epoch_metrics(report.epoch_metrics or {}),
         # outputs TODO #
     }
 
@@ -195,6 +200,12 @@ def _parse_metrics(data: dict[str, dict[str, Any]]) -> dict[str, Metric]:
     return {k: metrics_from_data(v) for k, v in data.items()}
 
 
+def _parse_epoch_metrics(
+    data: dict[int, dict[str, dict[str, any]]],
+) -> dict[int, dict[str, Metric]]:
+    return {int(k): _parse_metrics(v) for k, v in data.items()}
+
+
 def from_file(path: Path):
     path = Path(path)
 
@@ -215,6 +226,7 @@ def from_file(path: Path):
         traceability_graph=_parse_traceability_graph(data["traceability_graph"]),
         logs=_parse_logs(data["logs"]),
         metrics=_parse_metrics(data["metrics"]),
+        epoch_metrics=_parse_epoch_metrics(data["epoch_metrics"]),
         outputs=None,  # TODO: Parse outputs
     )
 

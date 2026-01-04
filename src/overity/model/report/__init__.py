@@ -83,6 +83,7 @@ class MethodReport:
     logs: list[MethodReportLogItem]
     outputs: any | None = None
     metrics: dict[str, Metric] | None = None
+    epoch_metrics: dict[int, dict[str, Metric]] | None = None
 
     @classmethod
     def default(
@@ -108,6 +109,7 @@ class MethodReport:
             logs=[],
             outputs=None,
             metrics={},
+            epoch_metrics={},
         )
 
     def log_add(self, tstamp: dt, severity: str, source: str, message: str):
