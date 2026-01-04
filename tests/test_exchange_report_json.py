@@ -12,6 +12,7 @@ from overity.exchange.report_json import from_file, to_file
 from overity.model.report import (
     MethodReport,
     MethodExecutionStatus,
+    MethodExecutionStage,
     MethodReportLogItem,
 )
 from overity.model.general_info.method import MethodKind, MethodAuthor, MethodInfo
@@ -78,6 +79,7 @@ class TestReportJson:
             program="test-program",
             date_started=dt(2023, 1, 1, 10, 0, 0),
             date_ended=dt(2023, 1, 1, 11, 0, 0),
+            stage=MethodExecutionStage.Preview,
             status=MethodExecutionStatus.ExecutionSuccess,
             environment={"python": "3.9", "cuda": "11.0"},
             context={"batch_size": 32, "epochs": 100},
@@ -160,6 +162,7 @@ class TestReportJson:
             "program": "minimal-program",
             "date_started": "2023-01-01T10:00:00",
             "date_ended": "2023-01-01T11:00:00",
+            "stage": "preview",
             "status": "execution_success",
             "environment": {},
             "context": {},
@@ -217,6 +220,7 @@ class TestReportJson:
             "program": "test-program",
             "date_started": "2023-01-01T10:00:00",
             "date_ended": "2023-01-01T11:00:00",
+            "stage": "preview",
             "status": "invalid_status",
             "environment": {},
             "context": {},
