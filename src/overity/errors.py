@@ -14,6 +14,7 @@ Overity.ai toolkit errors
 from pathlib import Path
 
 from overity.model.report import MethodReportKind
+from overity.model.general_info.method import MethodKind
 
 
 class EmptyMethodDescription(Exception):
@@ -26,6 +27,13 @@ class ProgramNotFound(Exception):
     def __init__(self, start_path: Path, recursive: bool = False):
         super().__init__(
             f"No program storage found starting from {start_path}. Recursive search was {'on' if recursive else 'off'}"
+        )
+
+
+class MethodNotFound(Exception):
+    def __init__(self, kind: MethodKind, slug: str):
+        super().__init__(
+            f"Can't find method {slug!r} of kind {kind.value} in current program"
         )
 
 

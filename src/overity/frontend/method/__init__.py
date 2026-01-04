@@ -13,9 +13,9 @@ Command subgroup for methods related manipulations
 
 from argparse import ArgumentParser, Namespace
 
-from overity.frontend.method import list_cmd
+from overity.frontend.method import list_cmd, run_cmd
 
-CLI_SUBCOMMANDS = {list_cmd}
+CLI_SUBCOMMANDS = {list_cmd, run_cmd}
 
 
 def setup_parser(parser: ArgumentParser):
