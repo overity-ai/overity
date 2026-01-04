@@ -84,22 +84,31 @@ def run(args: Namespace):
     log.info(f"Found method at: {method_path}")
 
     # Step 3: Set the OVERITY_STAGE environment variable
+    if "OVERITY_STAGE" in os.environ:
+        log.warning(
+            f"OVERITY_STAGE environment variable is set to {os.environ['OVERITY_STAGE']!r}, it takes precedence"
+        )
+
     stage = "operation" if args.operation else "preview"
-    os.environ["OVERITY_STAGE"] = stage
+    os.environ["OVERITY_STAGE"] = os.getenv("OVERITY_STAGE", default=stage)
     log.info(f"Set OVERITY_STAGE to: {stage}")
 
     # Step 4: If necessary, set the OVERITY_BENCH variable for DMQ methods
     if args.method_kind == MethodKind.MeasurementQualification:
-        if args.bench:
-            os.environ["OVERITY_BENCH"] = args.bench
-            log.info(f"Set OVERITY_BENCH to: {args.bench}")
+        if "OVERITY_BENCH" in os.environ:
+            log.warning(
+                f"OVERITY_BENCH environment variable is set to {os.environ['OVERITY_BENCH']!r}, it takes precedence"
+            )
+
+        bench = os.getenv("OVERITY_BENCH", default=args.bench)
+
+        if bench is not None:
+            os.environ["OVERITY_BENCH"] = os.getenv("OVERITY_BENCH", default=args.bench)
         else:
-            # Check if OVERITY_BENCH is already set
-            if "OVERITY_BENCH" not in os.environ:
-                log.error(
-                    "Measurement/qualification methods require --bench argument or OVERITY_BENCH environment variable"
-                )
-                sys.exit(1)
+            log.error(
+                "Measurement/qualification methods require --bench argument or OVERITY_BENCH environment variable"
+            )
+            sys.exit(1)
 
     # Step 5: Run the method script directly
     log.info(

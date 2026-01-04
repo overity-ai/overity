@@ -12,6 +12,7 @@ List available methods of a certain kind
 """
 
 import logging
+import sys
 import traceback
 
 from argparse import ArgumentParser, Namespace
@@ -48,31 +49,34 @@ def run(args: Namespace):
     try:
         pdir = b_program.find_current(start_path=cwd)
 
+        # List available methods
+        methods, errors = [], None
         if args.kind == MethodKind.TrainingOptimization:
             methods, errors = b_method.list_topt_methods(pdir)
-
-            # Display results
-            print("")
-            print(f"Found the following methods in {pdir}:")
-            print("")
-
-            headers = ("Slug", "Display name", "Path")
-            rows = (
-                (mtd.slug, mtd.display_name, mtd.path.relative_to(pdir))
-                for mtd in methods
-            )
-
-            print(f_table.table_format(headers, rows))
-
-            if errors:
-                print("")
-                print("While processing, the following errors has been found:")
-                print("")
-                for fpath, err in errors:
-                    print(f"- in {fpath.relative_to(pdir)!s}: {err!s}")
-
+        elif args.kind == MethodKind.MeasurementQualification:
+            methods, errors = b_method.list_measurement_qualification_methods(pdir)
         else:
             log.error(f"Unimplemented kind list: {args.kind}")
+            sys.exit(1)
+
+        # Display results
+        print("")
+        print(f"Found the following methods in {pdir}:")
+        print("")
+
+        headers = ("Slug", "Display name", "Path")
+        rows = (
+            (mtd.slug, mtd.display_name, mtd.path.relative_to(pdir)) for mtd in methods
+        )
+
+        print(f_table.table_format(headers, rows))
+
+        if errors:
+            print("")
+            print("While processing, the following errors has been found:")
+            print("")
+            for fpath, err in errors:
+                print(f"- in {fpath.relative_to(pdir)!s}: {err!s}")
 
     except ProgramNotFound as exc:
         log.exception(str(exc))
