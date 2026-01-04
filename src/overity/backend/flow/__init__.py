@@ -31,7 +31,11 @@ from overity.backend import bench as b_bench
 from overity.storage.local import LocalStorage
 
 from overity.model.general_info.method import MethodKind
-from overity.model.report import MethodExecutionStatus, MethodReport
+from overity.model.report import (
+    MethodExecutionStatus,
+    MethodExecutionStage,
+    MethodReport,
+)
 
 from overity.model.ml_model.metadata import (
     MLModelAuthor,
@@ -142,6 +146,10 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
     # Set run mode
     ctx.run_mode = run_mode
     log.info(f"Running in mode: {run_mode}")
+
+    # Detect execution stage
+    ctx.stage = b_env.execution_stage()
+    log.info(f"Running in stage: {ctx.stage}")
 
     # Get current programme
     ctx.pdir = program.find_current(start_path=method_path.parent)
@@ -627,6 +635,11 @@ class MetricSaver:
 @_api_guard
 def metrics_save(ctx: FlowCtx):
     return MetricSaver(ctx)
+
+
+@_api_guard
+def in_preview_stage(ctx: FlowCtx):
+    return ctx.stage == MethodExecutionStage.Preview
 
 
 ####################################################

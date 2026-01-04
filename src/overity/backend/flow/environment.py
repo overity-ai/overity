@@ -11,7 +11,13 @@ Utilities to dump environment information
 > information.
 """
 
+import logging
+
 from overity.errors import NoBenchDefinedError
+
+from overity.model.report import MethodExecutionStage
+
+log = logging.getLogger("backend.environment")
 
 
 def platform_info():
@@ -50,3 +56,25 @@ def bench() -> str:
         raise NoBenchDefinedError()
 
     return value
+
+
+def execution_stage():
+    """Detect the execution stage
+
+    This is priparmy done through the OVERITY_STAGE environment variable. This variable
+    may be set by the end-user or through the overity run CLI.
+    """
+
+    import os
+
+    stage_str = os.getenv("OVERITY_STAGE") or "preview"
+
+    try:
+        stage = MethodExecutionStage(stage_str)
+    except ValueError:  # Value is unkonwn
+        log.warning(
+            f"Invalid OVERITY_STAGE environment variable value: '{stage_str!r}'. Defaulting to preview mode"
+        )
+        stage = MethodExecutionStage.Preview
+
+    return stage

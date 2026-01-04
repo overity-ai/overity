@@ -54,6 +54,7 @@ from overity.errors import (
     AgentNotFound,
     DatasetNotFound,
     ReportNotFound,
+    MethodNotFound,
 )
 
 from overity.exchange.model_package_v1 import package as ml_package
@@ -315,7 +316,49 @@ class LocalStorage(StorageBackend):
 
     def measurement_qualification_methods(self):
         """Get list of measurement and qualification methods registered in program"""
-        raise NotImplementedError
+
+        def process_file(x: Path):
+            try:
+                ext = x.suffix
+
+                if ext == ".py":
+                    return file_py.from_file(
+                        x, kind=MethodKind.MeasurementQualification
+                    )
+                elif ext == ".ipynb":
+                    return file_ipynb.from_file(
+                        x, kind=MethodKind.MeasurementQualification
+                    )
+
+            except Exception as exc:
+                return (x, exc)
+
+        # Process files
+        py_files = self.measurement_qualification_folder.glob("*.py")
+        ipynb_files = self.measurement_qualification_folder.glob("*.ipynb")
+        processed = list(map(process_file, itertools.chain(py_files, ipynb_files)))
+
+        # Isolate found methods and errors
+        found_methods = list(filter(lambda x: isinstance(x, MethodInfo), processed))
+        found_errors = list(filter(lambda x: isinstance(x, tuple), processed))
+
+        # Look for duplicates in found methods
+        mtd_dict = {}
+        for mtd in found_methods:
+            mtd_dict[mtd.slug] = (mtd_dict.get(mtd.slug) or []) + [mtd]
+
+        duplicates = {k: v for k, v in mtd_dict.items() if len(v) > 1}
+
+        for slug, mtds in duplicates.items():
+            for mtd in mtds:
+                found_errors.append(
+                    (
+                        mtd.path,
+                        DuplicateSlugError(mtd.path, slug),
+                    )
+                )
+
+        return found_methods, found_errors
 
     def bench_abstractions(self):
         """Get list of bench abstractions registered in program"""
@@ -367,6 +410,35 @@ class LocalStorage(StorageBackend):
 
     def identify_method_slug(self, pp: Path):
         return pp.stem
+
+    def get_method_path(self, kind: MethodKind, slug: str):
+        """Get the path to the specified method kind"""
+
+        dirs = {
+            MethodKind.TrainingOptimization: self.training_optimization_folder,
+            MethodKind.MeasurementQualification: self.measurement_qualification_folder,
+            MethodKind.Analysis: self.analysis_folder,
+        }
+
+        mtd_dir = dirs[kind]
+
+        # Try to locate the method file, trying both .py and .ipynb extensions
+        py_file = mtd_dir / f"{slug}.py"
+        ipynb_file = mtd_dir / f"{slug}.ipynb"
+
+        # Duplicate found
+        if py_file.is_file() and ipynb_file.is_file():
+            raise DuplicateSlugError(ipynb_file, slug)
+
+        # No file found
+        if (not py_file.is_file()) and (not ipynb_file.is_file()):
+            raise MethodNotFound(kind, slug)
+
+        # Get the found file
+        if py_file.is_file():
+            return py_file
+        else:
+            return ipynb_file
 
     def bench_load_infos(self, slug: str):
         """Import a bench instanciation's information"""

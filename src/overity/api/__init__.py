@@ -93,6 +93,10 @@ def metrics_save():
     return flow.metrics_save(_CTX)
 
 
+def in_preview_stage():
+    return flow.in_preview_stage(_CTX)
+
+
 ####################################################
 # Bench API
 ####################################################
