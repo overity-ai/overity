@@ -93,6 +93,10 @@ def metrics_save():
     return flow.metrics_save(_CTX)
 
 
+def epoch_metrics(epoch: int):
+    return flow.epoch_metrics(_CTX, epoch)
+
+
 def in_preview_stage():
     return flow.in_preview_stage(_CTX)
 

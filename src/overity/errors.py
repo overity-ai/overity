@@ -170,3 +170,11 @@ class NoBenchDefinedError(Exception):
         super().__init__(
             "No bench defined to execute the measure/qualification method. Please set the OVERITY_BENCH variable to an existing bench in programme"
         )
+
+
+class InvalidEpochValue(Exception):
+    def __init__(self, epoch: int):
+        super().__init__(
+            f"Invalid epoch value: {epoch}. Epoch must be a non-negative integer."
+        )
+        self.epoch = epoch
