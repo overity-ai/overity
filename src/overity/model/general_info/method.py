@@ -45,7 +45,7 @@ class MethodAuthor:
     email: str
 
     """Optional contribution details"""
-    contribution: str | None
+    contribution: str | None = None
 
 
 @dataclass

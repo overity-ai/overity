@@ -681,6 +681,11 @@ def in_preview_stage(ctx: FlowCtx):
     return ctx.stage == MethodExecutionStage.Preview
 
 
+@_api_guard
+def epoch_metric_df(ctx: FlowCtx, key: str):
+    return ctx.report.epoch_metric_df(key)
+
+
 ####################################################
 # Bench API
 ####################################################

@@ -101,6 +101,10 @@ def in_preview_stage():
     return flow.in_preview_stage(_CTX)
 
 
+def epoch_metric_df(key: str):
+    return flow.epoch_metric_df(_CTX, key)
+
+
 ####################################################
 # Bench API
 ####################################################
