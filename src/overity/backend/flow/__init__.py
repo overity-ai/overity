@@ -637,34 +637,56 @@ class MetricSaver:
         return (f"{{:{self.VAR_NAME_LENGTH}s}} = {{}}").format(name, value)
 
     def __enter__(self):
-        if self.display_output:
-            log.info(self._sect(self.name))
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if self.display_output:
-            log.info(self._sect_end())
+            output_str = "\n" + self._sect(self.name) + "\n"
+
+            for metric_key, metric_value in self.output_dict.items():
+                if isinstance(metric_value, SimpleValue):
+                    output_str += (
+                        self._var(metric_key, f"{metric_value.value:.3f}") + "\n"
+                    )
+                elif isinstance(metric_value, LinScaleValue):
+                    output_str += (
+                        self._var(
+                            metric_key,
+                            f"{metric_value.value:.3f} ({metric_value.low:.3f}/{metric_value.high:.3f})",
+                        )
+                        + "\n"
+                    )
+                elif isinstance(metric_value, LinRangeValue):
+                    output_str += (
+                        self._var(
+                            metric_key,
+                            f"{metric_value.value:.3f} ({metric_value.low:.3f}/{metric_value.high:.3f})",
+                        )
+                        + "\n"
+                    )
+                elif isinstance(metric_value, PercentageValue):
+                    output_str += (
+                        self._var(metric_key, f"{metric_value.value*100.0:.2f} %")
+                        + "\n"
+                    )
+                else:  # Fallback
+                    output_str += self._var(metric_key, str(metric_value)) + "\n"
+
+            output_str += self._sect_end()
+            log.info(output_str)
 
     ###
 
     def simple(self, name: str, value: float):
-        if self.display_output:
-            log.info(self._var(name, f"{value:.3f}"))
         self.output_dict[name] = SimpleValue(value=value)
 
     def scale_lin(self, name: str, value: float, low: float, high: float):
-        if self.display_output:
-            log.info(self._var(name, f"{value:.3f} ({low:.3f}/{high:.3f})"))
         self.output_dict[name] = LinScaleValue(low=low, high=high, value=value)
 
     def range_lin(self, name: str, value: int, low: int, high: int):
-        if self.display_output:
-            log.info(self._var(name, f"{value:.3f} ({low:.3f}/{high:.3f})"))
         self.output_dict[name] = LinRangeValue(low=low, high=high, value=value)
 
     def percentage(self, name: str, value: float):
-        if self.display_output:
-            log.info(self._var(name, f"{value*100.0:.2f} %"))
         self.output_dict[name] = PercentageValue(value=value)
 
 
