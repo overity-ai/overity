@@ -60,6 +60,7 @@ from overity.model.traceability import (
 )
 
 from overity.model.report.metrics import (
+    Metric,
     SimpleValue,
     LinScaleValue,
     LinRangeValue,
@@ -68,7 +69,12 @@ from overity.model.report.metrics import (
 
 from overity.exchange import report_json
 from overity.exchange.method_common import file_py, file_ipynb
-from overity.errors import UnidentifiedMethodError, UninitAPIError, NotInDMQError
+from overity.errors import (
+    UnidentifiedMethodError,
+    UninitAPIError,
+    NotInDMQError,
+    InvalidEpochValue,
+)
 
 from overity.backend.flow.ctx import FlowCtx, RunMode
 from overity.backend.flow import environment as b_env
@@ -604,37 +610,70 @@ def dataset_package(ctx, slug: str, name: str, description: str | None = None):
 
 # TODO Add checks for duplicates and value constraints (when constructing?)
 class MetricSaver:
-    def __init__(self, ctx: FlowCtx):
-        self.ctx = ctx
+
+    SECTION_LENGTH = 64
+    VAR_NAME_LENGTH = 16
+
+    def __init__(self, name: str, output_dict: dict[str, Metric]):
+        self.name = name
+        self.output_dict = output_dict
+
+    def _sect(self, x: str):
+        pad_str = " " + x + " "
+
+        pad_left = self.SECTION_LENGTH // 2 - len(pad_str) // 2
+        pad_right = self.SECTION_LENGTH - pad_left - len(pad_str)
+
+        return ("-" * pad_left) + pad_str + ("-" * pad_right)
+
+    def _sect_end(self):
+        return "-" * self.SECTION_LENGTH
+
+    def _var(self, name: str, value: str):
+        # Generate a format string using f-string and call the format function
+        return (f"{{:{self.VAR_NAME_LENGTH}s}} = {{}}").format(name, value)
 
     def __enter__(self):
+        log.info(self._sect(self.name))
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        pass
+        log.info(self._sect_end())
 
     ###
 
     def simple(self, name: str, value: float):
-        log.info(f"-> Add simple metric {name}")
-        self.ctx.report.metrics[name] = SimpleValue(value=value)
+        log.info(self._var(name, f"{value:.3f}"))
+        self.output_dict[name] = SimpleValue(value=value)
 
     def scale_lin(self, name: str, value: float, low: float, high: float):
-        log.info(f"-> Add linear scale {name}")
-        self.ctx.report.metrics[name] = LinScaleValue(low=low, high=high, value=value)
+        log.info(self._var(name, f"{value:.3f} ({low:.3f}/{high:.3f})"))
+        self.output_dict[name] = LinScaleValue(low=low, high=high, value=value)
 
     def range_lin(self, name: str, value: int, low: int, high: int):
-        log.info(f"-> Add linear range {name}")
-        self.ctx.report.metrics[name] = LinRangeValue(low=low, high=high, value=value)
+        log.info(self._var(name, f"{value:.3f} ({low:.3f}/{high:.3f})"))
+        self.output_dict[name] = LinRangeValue(low=low, high=high, value=value)
 
     def percentage(self, name: str, value: float):
-        log.info(f"-> Add percentage {name}")
-        self.ctx.report.metrics[name] = PercentageValue(value=value)
+        log.info(self._var(name, f"{value:.2f} %"))
+        self.output_dict[name] = PercentageValue(value=value)
 
 
 @_api_guard
 def metrics_save(ctx: FlowCtx):
-    return MetricSaver(ctx)
+    return MetricSaver("Output metrics", ctx.report.metrics)
+
+
+@_api_guard
+def epoch_metrics(ctx: FlowCtx, epoch: int):
+    # Validate epoch value
+    if epoch < 0:
+        raise InvalidEpochValue(epoch)
+
+    if epoch not in ctx.report.epoch_metrics:
+        ctx.report.epoch_metrics[epoch] = {}
+
+    return MetricSaver(f"Epoch {epoch} metrics", ctx.report.epoch_metrics[epoch])
 
 
 @_api_guard
@@ -642,11 +681,16 @@ def in_preview_stage(ctx: FlowCtx):
     return ctx.stage == MethodExecutionStage.Preview
 
 
+@_api_guard
+def epoch_metric_df(ctx: FlowCtx, key: str):
+    return ctx.report.epoch_metric_df(key)
+
+
 ####################################################
 # Bench API
 ####################################################
 
-# TODO # Design: Just allow to get the instance, or create a specific
+# TODO: Design: Just allow to get the instance, or create a specific
 # API call for each bench method? How to manage specific API calls
 # Given by additional capabilities?
 

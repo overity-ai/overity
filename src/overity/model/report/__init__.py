@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from enum import Enum
 from datetime import datetime as dt
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import datetime
 
 from overity.model.traceability import ArtifactGraph
@@ -23,6 +23,8 @@ from overity.model.general_info.method import MethodInfo
 from overity.model.report.metrics import (
     Metric,
 )
+
+import pandas as pd
 
 
 class MethodExecutionStatus(Enum):
@@ -83,6 +85,7 @@ class MethodReport:
     logs: list[MethodReportLogItem]
     outputs: any | None = None
     metrics: dict[str, Metric] | None = None
+    epoch_metrics: dict[int, dict[str, Metric]] | None = None
 
     @classmethod
     def default(
@@ -108,6 +111,7 @@ class MethodReport:
             logs=[],
             outputs=None,
             metrics={},
+            epoch_metrics={},
         )
 
     def log_add(self, tstamp: dt, severity: str, source: str, message: str):
@@ -119,3 +123,21 @@ class MethodReport:
                 message=message,
             )
         )
+
+    def epoch_metric_df(self, key: str) -> pd.DataFrame | None:
+        """Get a pandas dataframe containing values for a specific item value
+
+        Args:
+            key: the key of the metric we want
+
+        Returns:
+            A dataframe indexed by 'epoch' containing the fields of the metric.
+            If no epoch metrics have been saved, returns None
+        """
+
+        rows = [{"epoch": k, **asdict(v[key])} for k, v in self.epoch_metrics.items()]
+
+        if rows:
+            return pd.DataFrame(rows).set_index("epoch")
+        else:  # Empty metrics
+            return None
