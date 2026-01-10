@@ -614,9 +614,12 @@ class MetricSaver:
     SECTION_LENGTH = 64
     VAR_NAME_LENGTH = 16
 
-    def __init__(self, name: str, output_dict: dict[str, Metric]):
+    def __init__(
+        self, name: str, output_dict: dict[str, Metric], display_output: bool = True
+    ):
         self.name = name
         self.output_dict = output_dict
+        self.display_output = display_output
 
     def _sect(self, x: str):
         pad_str = " " + x + " "
@@ -634,28 +637,34 @@ class MetricSaver:
         return (f"{{:{self.VAR_NAME_LENGTH}s}} = {{}}").format(name, value)
 
     def __enter__(self):
-        log.info(self._sect(self.name))
+        if self.display_output:
+            log.info(self._sect(self.name))
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        log.info(self._sect_end())
+        if self.display_output:
+            log.info(self._sect_end())
 
     ###
 
     def simple(self, name: str, value: float):
-        log.info(self._var(name, f"{value:.3f}"))
+        if self.display_output:
+            log.info(self._var(name, f"{value:.3f}"))
         self.output_dict[name] = SimpleValue(value=value)
 
     def scale_lin(self, name: str, value: float, low: float, high: float):
-        log.info(self._var(name, f"{value:.3f} ({low:.3f}/{high:.3f})"))
+        if self.display_output:
+            log.info(self._var(name, f"{value:.3f} ({low:.3f}/{high:.3f})"))
         self.output_dict[name] = LinScaleValue(low=low, high=high, value=value)
 
     def range_lin(self, name: str, value: int, low: int, high: int):
-        log.info(self._var(name, f"{value:.3f} ({low:.3f}/{high:.3f})"))
+        if self.display_output:
+            log.info(self._var(name, f"{value:.3f} ({low:.3f}/{high:.3f})"))
         self.output_dict[name] = LinRangeValue(low=low, high=high, value=value)
 
     def percentage(self, name: str, value: float):
-        log.info(self._var(name, f"{value:.2f} %"))
+        if self.display_output:
+            log.info(self._var(name, f"{value*100.0:.2f} %"))
         self.output_dict[name] = PercentageValue(value=value)
 
 
@@ -665,7 +674,7 @@ def metrics_save(ctx: FlowCtx):
 
 
 @_api_guard
-def epoch_metrics(ctx: FlowCtx, epoch: int):
+def epoch_metrics(ctx: FlowCtx, epoch: int, display_output: bool = True):
     # Validate epoch value
     if epoch < 0:
         raise InvalidEpochValue(epoch)
@@ -673,7 +682,11 @@ def epoch_metrics(ctx: FlowCtx, epoch: int):
     if epoch not in ctx.report.epoch_metrics:
         ctx.report.epoch_metrics[epoch] = {}
 
-    return MetricSaver(f"Epoch {epoch} metrics", ctx.report.epoch_metrics[epoch])
+    return MetricSaver(
+        f"Epoch {epoch} metrics",
+        ctx.report.epoch_metrics[epoch],
+        display_output=display_output,
+    )
 
 
 @_api_guard
