@@ -24,7 +24,11 @@ from overity.model.report.metrics import (
     Metric,
 )
 
-import pandas as pd
+from typing import TYPE_CHECKING
+from pandas import DataFrame
+
+if TYPE_CHECKING:
+    from plotly.graph_objects import Figure
 
 
 class MethodExecutionStatus(Enum):
@@ -86,6 +90,7 @@ class MethodReport:
     outputs: any | None = None
     metrics: dict[str, Metric] | None = None
     epoch_metrics: dict[int, dict[str, Metric]] | None = None
+    graphs: dict[str, Figure] | None = None
 
     @classmethod
     def default(
@@ -112,6 +117,7 @@ class MethodReport:
             outputs=None,
             metrics={},
             epoch_metrics={},
+            graphs={},
         )
 
     def log_add(self, tstamp: dt, severity: str, source: str, message: str):
@@ -124,7 +130,7 @@ class MethodReport:
             )
         )
 
-    def epoch_metric_df(self, key: str) -> pd.DataFrame | None:
+    def epoch_metric_df(self, key: str) -> DataFrame | None:
         """Get a pandas dataframe containing values for a specific item value
 
         Args:
@@ -138,6 +144,6 @@ class MethodReport:
         rows = [{"epoch": k, **asdict(v[key])} for k, v in self.epoch_metrics.items()]
 
         if rows:
-            return pd.DataFrame(rows).set_index("epoch")
+            return DataFrame(rows).set_index("epoch")
         else:  # Empty metrics
             return None
