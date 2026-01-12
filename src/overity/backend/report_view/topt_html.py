@@ -37,6 +37,8 @@ from overity.model.report.metrics import (
     PercentageValue,
 )
 
+from plotly.graph_objects import Figure as PlotlyFigure
+
 
 TEMPLATE_TXT = dedent(
     """\
@@ -48,9 +50,10 @@ TEMPLATE_TXT = dedent(
 
             <title>Report</title>
 
+            <script src="https://cdn.plot.ly/plotly-3.3.0.min.js" charset="utf-8"></script>
 
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
-
+            
             <style>
                 .report-header {
                     border-bottom: 3px solid #dee2e6;
@@ -79,23 +82,27 @@ TEMPLATE_TXT = dedent(
                 .log-view td {
                     padding: 0.2rem;
                 }
-                .log-view .severity-debug {
+                .log-view .severity-debug td {
                     background-color: #f0f0f0;
                     color: #6c757d;
                 }
-                .log-view .severity-info {
+
+                /*
+                .log-view .severity-info td {
                     background-color: #e5f2ff;
                     color: #0d6efd;
                 }
-                .log-view .severity-warning {
+                */
+
+                .log-view .severity-warning td {
                     background-color: #fff8e2;
                     color: #ffc107;
                 }
-                .log-view .severity-error {
+                .log-view .severity-error td {
                     background-color: #ffe5e5;
                     color: #dc3545;
                 }
-                .log-view .severity-critical {
+                .log-view .severity-critical td {
                     background-color: #ffd7d7;
                     color: #dc3545;
                 }
@@ -230,6 +237,7 @@ TEMPLATE_TXT = dedent(
 
                     <!-- -------------------------- -->
 
+
                     <div class="section-title">
                         <h2>4. Metrics</h2>
                     </div>
@@ -251,12 +259,36 @@ TEMPLATE_TXT = dedent(
                         {% endfor %}
                     </div>
 
+                    <!-- -------------------------- -->
+
+                    <div class="section-title">
+                        <h2>5. Graphs</h2>
+                    </div>
+
+                    <div class="row">
+                        {% for graph in graphs %}
+                        <div class="col-xl-6 col-md-6 mb-4>
+                            <div class="Card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Figure: {{graph.identifier}}</div>
+                                            <div class="h5 mb-0 font-weigh-bold text-gray-800">
+                                                {{graph.html}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
 
 
                     <!-- -------------------------- -->
 
                     <div class="section-title">
-                        <h2>5. Traceability</h2>
+                        <h2>6. Traceability</h2>
                     </div>
 
                     <div class="row">
@@ -274,7 +306,7 @@ TEMPLATE_TXT = dedent(
                     <!-- -------------------------- -->
 
                     <div class="section-title">
-                        <h2>6. Logs</h2>
+                        <h2>7. Logs</h2>
                     </div>
 
                     <div class="table-responsive">
@@ -289,7 +321,7 @@ TEMPLATE_TXT = dedent(
 
                         <tbody>
                             {% for item in logs %}
-                                <tr>
+                                <tr class="{{ item.severity_class }}">
                                     <td>#{{ loop.index }}</td>
                                     <td>{{ item.timestamp }}</td>
                                     <td>{{ item.severity }}</td>
@@ -319,6 +351,7 @@ TEMPLATE_TXT = dedent(
 
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 
             <script type="module">
                 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
@@ -429,6 +462,24 @@ def _process_metric(x: Metric):
         return f"{x.value*100:.2f} %"
 
 
+def _process_graph(x: PlotlyFigure):
+    graph_html = x.to_html(full_html=False, include_plotlyjs=False)
+    return graph_html
+
+
+_LOG_SEVERITY_CLASSES = {
+    "DEBUG": "severity-debug",
+    "INFO": "severity-info",
+    "WARNING": "severity-warning",
+    "ERROR": "severity-error",
+    "CRITICAL": "severity-critical",
+}
+
+
+def _log_severity_class(x: str):
+    return _LOG_SEVERITY_CLASSES.get(x, "")
+
+
 def render(report_data: MethodReport, report_path: Path | None = None):
     template = Template(TEMPLATE_TXT)
 
@@ -465,6 +516,7 @@ def render(report_data: MethodReport, report_path: Path | None = None):
             {
                 "timestamp": it.timestamp,
                 "severity": it.severity,
+                "severity_class": _log_severity_class(it.severity),
                 "source": it.source,
                 "message": it.message,
             }
@@ -473,6 +525,10 @@ def render(report_data: MethodReport, report_path: Path | None = None):
         "metrics": [
             {"name": k, "value": _process_metric(v)}
             for k, v in report_data.metrics.items()
+        ],
+        "graphs": [
+            {"identifier": k, "html": _process_graph(v)}
+            for k, v in report_data.graphs.items()
         ],
     }
 
