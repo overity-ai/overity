@@ -74,6 +74,7 @@ from overity.errors import (
     UninitAPIError,
     NotInDMQError,
     InvalidEpochValue,
+    DuplicateFigureError,
 )
 
 from overity.backend.flow.ctx import FlowCtx, RunMode
@@ -82,6 +83,9 @@ from overity.backend.flow.arguments import ArgumentParser
 
 from contextlib import contextmanager
 
+from matplotlib.figure import Figure as MplFigure
+from plotly.graph_objects import Figure as PlotlyFigure
+import plotly.tools as pl_tools
 
 log = logging.getLogger("backend.flow")
 
@@ -719,6 +723,38 @@ def in_preview_stage(ctx: FlowCtx):
 @_api_guard
 def epoch_metric_df(ctx: FlowCtx, key: str):
     return ctx.report.epoch_metric_df(key)
+
+
+####################################################
+# Graphs API
+####################################################
+
+
+@_api_guard
+def graph_save_mpl(ctx: FlowCtx, identifier: str, fig: MplFigure):
+    """Saves a matplotlib figure (by converting it to a plotly figure)"""
+    log.info("-> Save matplotlib figure {}".format(identifier))
+
+    if identifier in ctx.report.graphs:
+        raise DuplicateFigureError(identifier)
+
+    # Convert to plotly figure
+    pl_fig = pl_tools.mpl_to_plotly(fig)
+
+    # Save into report
+    ctx.report.graphs[identifier] = pl_fig
+
+
+@_api_guard
+def graph_save_plotly(ctx: FlowCtx, identifier: str, fig: PlotlyFigure):
+    """Saves a plotly figure into the report"""
+    log.info("-> Save plotly figure {}".format(identifier))
+
+    if identifier in ctx.report.graphs:
+        raise DuplicateFigureError(identifier)
+
+    # Save into report
+    ctx.report.graphs[identifier] = fig
 
 
 ####################################################

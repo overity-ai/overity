@@ -25,6 +25,19 @@ from overity.model.traceability import (
 )
 from overity.model.report.metrics import Metric, SimpleValue
 
+# Import plotly for graph testing
+try:
+    import plotly.graph_objects as go
+    from plotly.graph_objects import Figure
+
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+
+    # Create a dummy Figure class for type hints
+    class Figure:
+        pass
+
 
 class TestReportJson:
     def test_round_trip_method_report(self):
@@ -80,6 +93,34 @@ class TestReportJson:
             3: {"accuracy": SimpleValue(0.9), "loss": SimpleValue(0.1)},
         }
 
+        # Create sample graphs if plotly is available
+        graphs = {}
+        if PLOTLY_AVAILABLE:
+            # Create a simple line chart for accuracy
+            fig1 = go.Figure()
+            fig1.add_trace(
+                go.Scatter(
+                    x=[1, 2, 3],
+                    y=[0.8, 0.85, 0.9],
+                    mode="lines+markers",
+                    name="Accuracy",
+                )
+            )
+            fig1.update_layout(
+                title="Accuracy over Epochs",
+                xaxis_title="Epoch",
+                yaxis_title="Accuracy",
+            )
+
+            # Create a bar chart for loss
+            fig2 = go.Figure()
+            fig2.add_trace(go.Bar(x=[1, 2, 3], y=[0.2, 0.15, 0.1], name="Loss"))
+            fig2.update_layout(
+                title="Loss over Epochs", xaxis_title="Epoch", yaxis_title="Loss"
+            )
+
+            graphs = {"accuracy_plot": fig1, "loss_plot": fig2}
+
         original_report = MethodReport(
             uuid="test-uuid-123",
             program="test-program",
@@ -95,6 +136,7 @@ class TestReportJson:
             metrics=metrics,
             epoch_metrics=epoch_metrics,
             outputs=None,
+            graphs=graphs,
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -166,12 +208,55 @@ class TestReportJson:
             assert 1 in result.epoch_metrics
             assert 2 in result.epoch_metrics
             assert 3 in result.epoch_metrics
-            assert result.epoch_metrics[1]["accuracy"].data() == epoch_metrics[1]["accuracy"].data()
-            assert result.epoch_metrics[1]["loss"].data() == epoch_metrics[1]["loss"].data()
-            assert result.epoch_metrics[2]["accuracy"].data() == epoch_metrics[2]["accuracy"].data()
-            assert result.epoch_metrics[2]["loss"].data() == epoch_metrics[2]["loss"].data()
-            assert result.epoch_metrics[3]["accuracy"].data() == epoch_metrics[3]["accuracy"].data()
-            assert result.epoch_metrics[3]["loss"].data() == epoch_metrics[3]["loss"].data()
+            assert (
+                result.epoch_metrics[1]["accuracy"].data()
+                == epoch_metrics[1]["accuracy"].data()
+            )
+            assert (
+                result.epoch_metrics[1]["loss"].data()
+                == epoch_metrics[1]["loss"].data()
+            )
+            assert (
+                result.epoch_metrics[2]["accuracy"].data()
+                == epoch_metrics[2]["accuracy"].data()
+            )
+            assert (
+                result.epoch_metrics[2]["loss"].data()
+                == epoch_metrics[2]["loss"].data()
+            )
+            assert (
+                result.epoch_metrics[3]["accuracy"].data()
+                == epoch_metrics[3]["accuracy"].data()
+            )
+            assert (
+                result.epoch_metrics[3]["loss"].data()
+                == epoch_metrics[3]["loss"].data()
+            )
+
+            # Graphs
+            if PLOTLY_AVAILABLE:
+                assert result.graphs is not None
+                assert len(result.graphs) == len(graphs)
+                assert "accuracy_plot" in result.graphs
+                assert "loss_plot" in result.graphs
+
+                # Verify the figures are preserved
+                assert isinstance(result.graphs["accuracy_plot"], Figure)
+                assert isinstance(result.graphs["loss_plot"], Figure)
+
+                # Verify figure data is preserved
+                acc_fig = result.graphs["accuracy_plot"]
+                assert acc_fig.data[0].type == "scatter"
+                assert list(acc_fig.data[0].x) == [1, 2, 3]
+                assert list(acc_fig.data[0].y) == [0.8, 0.85, 0.9]
+
+                loss_fig = result.graphs["loss_plot"]
+                assert loss_fig.data[0].type == "bar"
+                assert list(loss_fig.data[0].x) == [1, 2, 3]
+                assert list(loss_fig.data[0].y) == [0.2, 0.15, 0.1]
+            else:
+                # When plotly is not available, graphs should be empty dict
+                assert result.graphs == {}
 
         finally:
             temp_path.unlink()
@@ -276,18 +361,36 @@ class TestReportJson:
             assert 1 in result.epoch_metrics
             assert 5 in result.epoch_metrics
             assert 10 in result.epoch_metrics
-            
+
             # Check epoch 1 metrics
-            assert result.epoch_metrics[1]["accuracy"].data() == epoch_metrics[1]["accuracy"].data()
-            assert result.epoch_metrics[1]["loss"].data() == epoch_metrics[1]["loss"].data()
-            
+            assert (
+                result.epoch_metrics[1]["accuracy"].data()
+                == epoch_metrics[1]["accuracy"].data()
+            )
+            assert (
+                result.epoch_metrics[1]["loss"].data()
+                == epoch_metrics[1]["loss"].data()
+            )
+
             # Check epoch 5 metrics
-            assert result.epoch_metrics[5]["accuracy"].data() == epoch_metrics[5]["accuracy"].data()
-            assert result.epoch_metrics[5]["loss"].data() == epoch_metrics[5]["loss"].data()
-            
+            assert (
+                result.epoch_metrics[5]["accuracy"].data()
+                == epoch_metrics[5]["accuracy"].data()
+            )
+            assert (
+                result.epoch_metrics[5]["loss"].data()
+                == epoch_metrics[5]["loss"].data()
+            )
+
             # Check epoch 10 metrics
-            assert result.epoch_metrics[10]["accuracy"].data() == epoch_metrics[10]["accuracy"].data()
-            assert result.epoch_metrics[10]["loss"].data() == epoch_metrics[10]["loss"].data()
+            assert (
+                result.epoch_metrics[10]["accuracy"].data()
+                == epoch_metrics[10]["accuracy"].data()
+            )
+            assert (
+                result.epoch_metrics[10]["loss"].data()
+                == epoch_metrics[10]["loss"].data()
+            )
 
         finally:
             temp_path.unlink()
@@ -342,3 +445,90 @@ class TestReportJson:
                     from_file(Path(f.name))
             finally:
                 Path(f.name).unlink()
+
+    @pytest.mark.skipif(not PLOTLY_AVAILABLE, reason="plotly not available")
+    def test_graphs_encoding_decoding(self):
+        """Test that graphs are properly encoded and decoded."""
+        # Create test data with various plotly figures
+        method_info = MethodInfo(
+            slug="graph-test-method",
+            kind=MethodKind.TrainingOptimization,
+            display_name="Graph Test Method",
+            authors=[MethodAuthor(name="Test Author", email="test@example.com")],
+            metadata={},
+            description="A test method for graphs",
+            path=Path("/path/to/method"),
+        )
+
+        # Create various types of plotly figures
+        figures = {
+            "simple_scatter": go.Figure(data=go.Scatter(x=[1, 2, 3], y=[4, 5, 6])),
+            "bar_chart": go.Figure(data=go.Bar(x=["A", "B", "C"], y=[10, 20, 30])),
+            "line_chart": go.Figure(
+                data=go.Scatter(x=[1, 2, 3, 4], y=[1, 4, 9, 16], mode="lines")
+            ),
+            "heatmap": go.Figure(data=go.Heatmap(z=[[1, 2], [3, 4]])),
+            "multi_trace": go.Figure(
+                [
+                    go.Scatter(x=[1, 2, 3], y=[1, 2, 3], name="Line 1"),
+                    go.Scatter(x=[1, 2, 3], y=[3, 2, 1], name="Line 2"),
+                ]
+            ),
+        }
+
+        original_report = MethodReport(
+            uuid="graph-test-uuid",
+            program="graph-test-program",
+            date_started=dt(2023, 1, 1, 10, 0, 0),
+            date_ended=dt(2023, 1, 1, 11, 0, 0),
+            stage=MethodExecutionStage.Preview,
+            status=MethodExecutionStatus.ExecutionSuccess,
+            environment={},
+            context={},
+            method_info=method_info,
+            traceability_graph=ArtifactGraph.default(),
+            logs=[],
+            metrics={},
+            epoch_metrics={},
+            outputs=None,
+            graphs=figures,
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            # Encode to file
+            to_file(original_report, temp_path)
+
+            # Decode from file
+            result = from_file(temp_path)
+
+            # Verify graphs are preserved
+            assert result.graphs is not None
+            assert len(result.graphs) == len(figures)
+
+            # Verify each figure type
+            for fig_name, original_fig in figures.items():
+                assert fig_name in result.graphs
+                result_fig = result.graphs[fig_name]
+
+                # Verify it's a Figure object
+                assert isinstance(result_fig, Figure)
+
+                # Verify the figure has the same number of traces
+                assert len(result_fig.data) == len(original_fig.data)
+
+                # Verify basic properties are preserved
+                for i, original_trace in enumerate(original_fig.data):
+                    result_trace = result_fig.data[i]
+                    assert result_trace.type == original_trace.type
+
+                    # For simple traces, verify some data is preserved
+                    if hasattr(original_trace, "x") and original_trace.x is not None:
+                        assert list(result_trace.x) == list(original_trace.x)
+                    if hasattr(original_trace, "y") and original_trace.y is not None:
+                        assert list(result_trace.y) == list(original_trace.y)
+
+        finally:
+            temp_path.unlink()

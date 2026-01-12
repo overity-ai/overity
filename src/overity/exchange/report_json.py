@@ -14,6 +14,12 @@ Overity.ai report encoder/decoder
 from __future__ import annotations
 
 import json
+import zlib
+import base64
+
+import plotly.io
+import plotly.graph_objects
+
 from typing import Any
 from pathlib import Path
 from overity.model.report import (
@@ -115,6 +121,20 @@ def _encode_epoch_metrics(x: dict[int, dict[str, Metric]]):
     return {str(k): _encode_metrics(v) for k, v in x.items()}
 
 
+def _encode_graph(x: plotly.graph_objects.Figure) -> str:
+    json_str = plotly.io.to_json(x)
+    gz_data = zlib.compress(json_str.encode("utf-8"))
+    b64_data = base64.b64encode(gz_data)
+
+    return b64_data.decode("ascii")
+
+
+def _encode_graphs(graphs: dict[str, plotly.graph_objects.Figure]) -> dict[str, str]:
+    return {
+        graph_id: _encode_graph(graph_data) for graph_id, graph_data in graphs.items()
+    }
+
+
 def to_file(report: MethodReport, path: Path):
     output_obj = {
         "uuid": report.uuid,
@@ -130,6 +150,7 @@ def to_file(report: MethodReport, path: Path):
         "logs": _encode_logs(report.logs),
         "metrics": _encode_metrics(report.metrics or {}),
         "epoch_metrics": _encode_epoch_metrics(report.epoch_metrics or {}),
+        "graphs": _encode_graphs(report.graphs or {}),
         # outputs TODO #
     }
 
@@ -206,6 +227,19 @@ def _parse_epoch_metrics(
     return {int(k): _parse_metrics(v) for k, v in data.items()}
 
 
+def _parse_graph(data: str) -> plotly.graph_objects.Figure:
+    gz_bytes = base64.b64decode(data)
+    json_str = zlib.decompress(gz_bytes).decode("utf-8")
+
+    pl_fig = plotly.io.from_json(json_str)
+
+    return pl_fig
+
+
+def _parse_graphs(data: dict[str, str]):
+    return {graph_id: _parse_graph(graph_data) for graph_id, graph_data in data.items()}
+
+
 def from_file(path: Path):
     path = Path(path)
 
@@ -227,6 +261,7 @@ def from_file(path: Path):
         logs=_parse_logs(data["logs"]),
         metrics=_parse_metrics(data["metrics"]),
         epoch_metrics=_parse_epoch_metrics(data["epoch_metrics"]),
+        graphs=_parse_graphs(data.get("graphs", {})),
         outputs=None,  # TODO: Parse outputs
     )
 

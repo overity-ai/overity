@@ -178,3 +178,8 @@ class InvalidEpochValue(Exception):
             f"Invalid epoch value: {epoch}. Epoch must be a non-negative integer."
         )
         self.epoch = epoch
+
+
+class DuplicateFigureError(Exception):
+    def __init__(self, fig_identifier: str):
+        super().__init__(f"Duplicate figure identifier: {fig_identifier}")

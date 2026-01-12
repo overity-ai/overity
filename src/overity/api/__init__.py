@@ -22,6 +22,9 @@ from overity.errors import UnknownMethodError
 
 from overity.backend.flow.ctx import FlowCtx, RunMode
 
+from matplotlib.figure import Figure as MplFigure
+from plotly.graph_objects import Figure as PlotlyFigure
+
 
 # Initialize global flow object
 _CTX = FlowCtx.default()
@@ -103,6 +106,14 @@ def in_preview_stage():
 
 def epoch_metric_df(key: str):
     return flow.epoch_metric_df(_CTX, key)
+
+
+def graph_save_mpl(identifier: str, fig: MplFigure):
+    return flow.graph_save_mpl(_CTX, identifier, fig)
+
+
+def graph_save_plotly(identifier: str, fig: PlotlyFigure):
+    return flow.graph_save_plotly(_CTX, identifier, fig)
 
 
 ####################################################
