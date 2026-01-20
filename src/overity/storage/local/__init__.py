@@ -44,7 +44,7 @@ from overity.exchange import (
 
 from overity.exchange.bench_abstraction import file_py as bench_abstraction_py
 
-from overity.storage.base import StorageBackend
+from overity.storage.base import StorageBackend, HashObject
 from overity.exchange.method_common import file_ipynb, file_py
 
 from overity.errors import (
@@ -658,7 +658,9 @@ class LocalStorage(StorageBackend):
 
         return pkginfo
 
-    def model_load(self, slug: str, target_folder: Path) -> MLModelMetadata:
+    def model_load(
+        self, slug: str, target_folder: Path
+    ) -> tuple[MLModelMetadata, HashObject]:
         fpath = self._model_path(slug)
 
         if not fpath.is_file():
@@ -666,7 +668,10 @@ class LocalStorage(StorageBackend):
 
         pkginfo = ml_package.model_load(fpath, target_folder)
 
-        return pkginfo
+        # Compute SHA256 of the archive file
+        sha256 = ml_package.package_sha256(fpath)
+
+        return pkginfo, sha256
 
     def model_store(self, slug: str, pkg: MLModelPackage):
         fpath = self._model_path(slug)  # Get path for target archive
@@ -690,7 +695,7 @@ class LocalStorage(StorageBackend):
 
     def inference_agent_load(
         self, slug: str, target_folder: Path
-    ) -> InferenceAgentPackageInfo:
+    ) -> tuple[InferenceAgentPackageInfo, HashObject]:
         fpath = self._agent_path(slug)
 
         if not fpath.is_file():
@@ -698,7 +703,10 @@ class LocalStorage(StorageBackend):
 
         pkginfo = agent_package.agent_load(fpath, target_folder)
 
-        return pkginfo
+        # Compute SHA256 of the archive file
+        sha256 = agent_package.package_sha256(fpath)
+
+        return pkginfo, sha256
 
     def inference_agent_store(self, slug: str, package: InferenceAgentPackageInfo):
         fpath = self._agent_path(slug)
@@ -720,7 +728,9 @@ class LocalStorage(StorageBackend):
 
         return pkginfo
 
-    def dataset_load(self, slug: str, target_folder: Path) -> DatasetPackageInfo:
+    def dataset_load(
+        self, slug: str, target_folder: Path
+    ) -> tuple[DatasetPackageInfo, HashObject]:
         fpath = self._dataset_path(slug)
 
         if not fpath.is_file():
@@ -728,7 +738,10 @@ class LocalStorage(StorageBackend):
 
         pkginfo = dataset_package.dataset_load(fpath, target_folder)
 
-        return pkginfo
+        # Compute SHA256 of the archive file
+        sha256 = dataset_package.package_sha256(fpath)
+
+        return pkginfo, sha256
 
     def dataset_store(self, slug: str, package: DatasetPackageInfo):
         fpath = self._dataset_path(slug)

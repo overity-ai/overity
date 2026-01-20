@@ -41,15 +41,22 @@ def run(args: Namespace):
     try:
         pdir = b_program.find_current(start_path=cwd)
 
-        agents, errors = b_agent.list_agents(pdir)
+        agents, errors = b_agent.list_agents_with_checksums(pdir)
 
         # Displaying results
         print("")
         print(f"Found the following agents in {pdir}:")
         print("")
 
-        headers = ("Agent slug", "Agent name")
-        rows = ((agt_slug, agt_info.name) for agt_slug, agt_info in agents)
+        headers = ("Agent slug", "Agent name", "SHA256 checksum")
+        rows = (
+            (
+                agt_slug,
+                agt_info.name,
+                checksum[:16] + "..." if len(checksum) > 16 else checksum,
+            )
+            for agt_slug, agt_info, checksum in agents
+        )
 
         print(f_table.table_format(headers, rows))
 

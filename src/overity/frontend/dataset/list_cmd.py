@@ -40,16 +40,21 @@ def run(args: Namespace):
     try:
         pdir = b_program.find_current(start_path=cwd)
 
-        datasets, errors = b_dataset.list_datasets(pdir)
+        datasets, errors = b_dataset.list_datasets_with_checksums(pdir)
 
         # Displaying results
         print("")
         print(f"Found the following datasets in {pdir}:")
         print("")
 
-        headers = ("Dataset slug", "Dataset name")
+        headers = ("Dataset slug", "Dataset name", "SHA256 checksum")
         rows = (
-            (dataset_slug, dataset_info.name) for dataset_slug, dataset_info in datasets
+            (
+                dataset_slug,
+                dataset_info.name,
+                checksum[:16] + "..." if len(checksum) > 16 else checksum,
+            )
+            for dataset_slug, dataset_info, checksum in datasets
         )
 
         print(f_table.table_format(headers, rows))

@@ -40,20 +40,21 @@ def run(args: Namespace):
     try:
         pdir = b_program.find_current(start_path=cwd)
 
-        models, errors = b_model.list_models(pdir)
+        models, errors = b_model.list_models_with_checksums(pdir)
 
         # Displaying results
         print("")
         print(f"Found the following models in {pdir}:")
         print("")
 
-        headers = ("Model slug", "Model name")
+        headers = ("Model slug", "Model name", "SHA256 checksum")
         rows = (
             (
                 mod_slug,
                 mod_info.name,
+                checksum[:16] + "..." if len(checksum) > 16 else checksum,
             )
-            for mod_slug, mod_info in models
+            for mod_slug, mod_info, checksum in models
         )
 
         print(f_table.table_format(headers, rows))

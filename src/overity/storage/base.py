@@ -16,6 +16,7 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import Callable
 
+
 from overity.model.general_info.method import MethodKind
 from overity.model.ml_model.metadata import MLModelMetadata
 from overity.model.ml_model.package import MLModelPackage
@@ -29,9 +30,11 @@ from overity.model.dataset.package import DatasetPackageInfo
 
 from pathlib import Path
 
+# Type alias for hashlib hash objects
+HashObject = "_hashlib.HASH"
+
 
 class StorageBackend(ABC):
-
     # -------------------------- Catalyst
 
     @abstractmethod
@@ -177,8 +180,10 @@ class StorageBackend(ABC):
         """Get info for a given model slug"""
 
     @abstractmethod
-    def model_load(self, slug: str, target_folder: Path) -> MLModelMetadata:
-        """Load a model package"""
+    def model_load(
+        self, slug: str, target_folder: Path
+    ) -> tuple[MLModelMetadata, HashObject]:
+        """Load a model package. Returns (metadata, sha256_hash)"""
 
     @abstractmethod
     def model_store(self, slug: str, package: MLModelPackage):
@@ -191,8 +196,8 @@ class StorageBackend(ABC):
     @abstractmethod
     def inference_agent_load(
         self, slug: str, target_folder: Path
-    ) -> InferenceAgentPackageInfo:
-        """Load an inference agent package into the specified target folder"""
+    ) -> tuple[InferenceAgentPackageInfo, HashObject]:
+        """Load an inference agent package into the specified target folder. Returns (package_info, sha256_hash)"""
 
     @abstractmethod
     def inference_agent_store(self, slug: str, package: InferenceAgentPackageInfo):
@@ -203,8 +208,10 @@ class StorageBackend(ABC):
         """Get info for a given dataset slug"""
 
     @abstractmethod
-    def dataset_load(self, slug: str, target_folder: Path):
-        """Load a dataset package into the specified target folder"""
+    def dataset_load(
+        self, slug: str, target_folder: Path
+    ) -> tuple[DatasetPackageInfo, HashObject]:
+        """Load a dataset package into the specified target folder. Returns (package_info, sha256_hash)"""
 
     @abstractmethod
     def dataset_store(self, slug: str, package: DatasetPackageInfo):
