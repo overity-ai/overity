@@ -165,15 +165,30 @@ class StorageBackend(ABC):
 
     @abstractmethod
     def models(self):
-        """Get list of available models in program"""
+        """Get list of available models in program
+
+        Returns:
+            A tuple of (found_models, found_errors) where found_models is a list of
+            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+        """
 
     @abstractmethod
     def inference_agents(self):
-        """Get list of available inference agents in program"""
+        """Get list of available inference agents in program
+
+        Returns:
+            A tuple of (found_agents, found_errors) where found_agents is a list of
+            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+        """
 
     @abstractmethod
     def datasets(self):
-        """Get list of available datasets in program"""
+        """Get list of available datasets in program
+
+        Returns:
+            A tuple of (found_datasets, found_errors) where found_datasets is a list of
+            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+        """
 
     @abstractmethod
     def model_info_get(self, slug: str) -> MLModelMetadata:

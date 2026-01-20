@@ -40,7 +40,7 @@ def run(args: Namespace):
     try:
         pdir = b_program.find_current(start_path=cwd)
 
-        models, errors = b_model.list_models_with_checksums(pdir)
+        models, errors = b_model.list_models(pdir)
 
         # Displaying results
         print("")

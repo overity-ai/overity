@@ -41,7 +41,7 @@ def run(args: Namespace):
     try:
         pdir = b_program.find_current(start_path=cwd)
 
-        agents, errors = b_agent.list_agents_with_checksums(pdir)
+        agents, errors = b_agent.list_agents(pdir)
 
         # Displaying results
         print("")

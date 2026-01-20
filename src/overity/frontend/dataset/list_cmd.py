@@ -40,7 +40,7 @@ def run(args: Namespace):
     try:
         pdir = b_program.find_current(start_path=cwd)
 
-        datasets, errors = b_dataset.list_datasets_with_checksums(pdir)
+        datasets, errors = b_dataset.list_datasets(pdir)
 
         # Displaying results
         print("")
