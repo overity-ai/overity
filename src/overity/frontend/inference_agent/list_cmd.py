@@ -49,7 +49,13 @@ def run(args: Namespace):
         print("")
 
         headers = ("Agent slug", "Agent name")
-        rows = ((agt_slug, agt_info.name) for agt_slug, agt_info in agents)
+        rows = (
+            (
+                agt_slug,
+                agt_info.name,
+            )
+            for agt_slug, agt_info in agents
+        )
 
         print(f_table.table_format(headers, rows))
 

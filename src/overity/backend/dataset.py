@@ -24,7 +24,7 @@ def list_datasets(program_path: Path):
 
     program_path = Path(program_path)
 
-    log.info(f"List avialalbe datasets from program {program_path}")
+    log.info(f"List available datasets from program {program_path}")
     st = LocalStorage(program_path)
 
     datasets, errors = st.datasets()

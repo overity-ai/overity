@@ -44,7 +44,7 @@ from overity.exchange import (
 
 from overity.exchange.bench_abstraction import file_py as bench_abstraction_py
 
-from overity.storage.base import StorageBackend
+from overity.storage.base import StorageBackend, HashObject
 from overity.exchange.method_common import file_ipynb, file_py
 
 from overity.errors import (
@@ -576,14 +576,16 @@ class LocalStorage(StorageBackend):
         """Get list of available models in program
 
         Returns:
-            A list of tuples containing (slug, metadata)
+            A tuple of (found_models, found_errors) where found_models is a list of
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
         """
 
         def process_file(x: Path):
             slug = x.name.removesuffix(".tar.gz")
 
             try:
-                return (slug, ml_package.metadata_load(x))
+                metadata = ml_package.metadata_load(x)
+                return (slug, metadata)
             except Exception as exc:
                 return (slug, exc)
 
@@ -598,13 +600,19 @@ class LocalStorage(StorageBackend):
         return found_models, found_errors
 
     def datasets(self):
-        """Get list of available datasets in program"""
+        """Get list of available datasets in program
+
+        Returns:
+            A tuple of (found_datasets, found_errors) where found_datasets is a list of
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
+        """
 
         def process_file(x: Path):
             slug = x.name.removesuffix(".tar.gz")
 
             try:
-                return (slug, dataset_package.metadata_load(x))
+                metadata = dataset_package.metadata_load(x)
+                return (slug, metadata)
             except Exception as exc:
                 return (slug, exc)
 
@@ -622,14 +630,16 @@ class LocalStorage(StorageBackend):
         """Get a list of available inference agents in program
 
         Returns:
-            A list of tuples containing (slug, metadata)
+            A tuple of (found_agents, found_errors) where found_agents is a list of
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
         """
 
         def process_file(x: Path):
             slug = x.name.removesuffix(".tar.gz")
 
             try:
-                return (slug, agent_package.metadata_load(x))
+                metadata = agent_package.metadata_load(x)
+                return (slug, metadata)
             except Exception as exc:
                 return (slug, exc)
 
@@ -637,7 +647,10 @@ class LocalStorage(StorageBackend):
 
         # Isolate found agents and errors
         found_agents = list(
-            filter(lambda x: isinstance(x[1], InferenceAgentMetadata), processed)
+            filter(
+                lambda x: isinstance(x[1], InferenceAgentMetadata),
+                processed,
+            )
         )
         found_errors = list(filter(lambda x: isinstance(x[1], Exception), processed))
 
@@ -658,7 +671,9 @@ class LocalStorage(StorageBackend):
 
         return pkginfo
 
-    def model_load(self, slug: str, target_folder: Path) -> MLModelMetadata:
+    def model_load(
+        self, slug: str, target_folder: Path
+    ) -> tuple[MLModelMetadata, HashObject]:
         fpath = self._model_path(slug)
 
         if not fpath.is_file():
@@ -666,7 +681,10 @@ class LocalStorage(StorageBackend):
 
         pkginfo = ml_package.model_load(fpath, target_folder)
 
-        return pkginfo
+        # Compute SHA256 of the archive file
+        sha256 = ml_package.package_sha256(fpath)
+
+        return pkginfo, sha256
 
     def model_store(self, slug: str, pkg: MLModelPackage):
         fpath = self._model_path(slug)  # Get path for target archive
@@ -690,7 +708,7 @@ class LocalStorage(StorageBackend):
 
     def inference_agent_load(
         self, slug: str, target_folder: Path
-    ) -> InferenceAgentPackageInfo:
+    ) -> tuple[InferenceAgentPackageInfo, HashObject]:
         fpath = self._agent_path(slug)
 
         if not fpath.is_file():
@@ -698,7 +716,10 @@ class LocalStorage(StorageBackend):
 
         pkginfo = agent_package.agent_load(fpath, target_folder)
 
-        return pkginfo
+        # Compute SHA256 of the archive file
+        sha256 = agent_package.package_sha256(fpath)
+
+        return pkginfo, sha256
 
     def inference_agent_store(self, slug: str, package: InferenceAgentPackageInfo):
         fpath = self._agent_path(slug)
@@ -720,7 +741,9 @@ class LocalStorage(StorageBackend):
 
         return pkginfo
 
-    def dataset_load(self, slug: str, target_folder: Path) -> DatasetPackageInfo:
+    def dataset_load(
+        self, slug: str, target_folder: Path
+    ) -> tuple[DatasetPackageInfo, HashObject]:
         fpath = self._dataset_path(slug)
 
         if not fpath.is_file():
@@ -728,7 +751,10 @@ class LocalStorage(StorageBackend):
 
         pkginfo = dataset_package.dataset_load(fpath, target_folder)
 
-        return pkginfo
+        # Compute SHA256 of the archive file
+        sha256 = dataset_package.package_sha256(fpath)
+
+        return pkginfo, sha256
 
     def dataset_store(self, slug: str, package: DatasetPackageInfo):
         fpath = self._dataset_path(slug)

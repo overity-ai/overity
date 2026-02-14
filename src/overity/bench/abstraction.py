@@ -83,10 +83,9 @@ class BenchAbstraction(ABC):
 
         tmpdir = tempfile.TemporaryDirectory()
         tmpdir_path = Path(tmpdir.name).resolve()
-        pkginfo = self.storage.inference_agent_load(slug, tmpdir_path)
+        pkginfo, sha256 = self.storage.inference_agent_load(slug, tmpdir_path)
 
         # Traceability information
-        # TODO Add hash information
         # FIXME Duplicate with flow backend code?
         # -> Artifact key for agent
         agent_key = ArtifactKey(
@@ -102,6 +101,9 @@ class BenchAbstraction(ABC):
                 b=agent_key,
             )
         )
+
+        # -> Store SHA256 hash in traceability metadata
+        self.traceability_graph.metadata_store(agent_key, "sha256", sha256.hexdigest())
 
         self.tmpdirs.add(tmpdir)
 

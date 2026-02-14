@@ -49,7 +49,11 @@ def run(args: Namespace):
 
         headers = ("Dataset slug", "Dataset name")
         rows = (
-            (dataset_slug, dataset_info.name) for dataset_slug, dataset_info in datasets
+            (
+                dataset_slug,
+                dataset_info.name,
+            )
+            for dataset_slug, dataset_info in datasets
         )
 
         print(f_table.table_format(headers, rows))

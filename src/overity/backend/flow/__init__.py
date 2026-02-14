@@ -427,10 +427,9 @@ def model_use(ctx, slug: str):
     tmpdir = tempfile.TemporaryDirectory()
     tmpdir_path = Path(tmpdir.name).resolve()
 
-    pkginfo = ctx.storage.model_load(slug, tmpdir_path)
+    pkginfo, sha256 = ctx.storage.model_load(slug, tmpdir_path)
 
     # Add traceability
-    # TODO add hash information
     # -> Create artifact key for model
     model_key = ArtifactKey(
         kind=ArtifactKind.Model,
@@ -444,6 +443,11 @@ def model_use(ctx, slug: str):
             b=model_key,
             kind=ArtifactLinkKind.ModelUse,
         )
+    )
+
+    # -> Store SHA256 hash in traceability metadata
+    ctx.report.traceability_graph.metadata_store(
+        model_key, "sha256", sha256.hexdigest()
     )
 
     ctx.tmpdirs.append(tmpdir)
@@ -526,15 +530,14 @@ def model_package(
 
 @_api_guard
 def dataset_use(ctx, slug: str):
-    log.info(f"Search for dataset: {slug}")
+    log.info(f"Search for dataset: {slug}")
 
     tmpdir = tempfile.TemporaryDirectory()
     tmpdir_path = Path(tmpdir.name).resolve()
 
-    pkginfo = ctx.storage.dataset_load(slug, tmpdir_path)
+    pkginfo, sha256 = ctx.storage.dataset_load(slug, tmpdir_path)
 
     # Add traceability
-    # TODO add hash information
     # -> Create artifact key for dataset
     dataset_key = ArtifactKey(kind=ArtifactKind.Dataset, id=slug)
 
@@ -545,6 +548,11 @@ def dataset_use(ctx, slug: str):
             b=dataset_key,
             kind=ArtifactLinkKind.DatasetUse,
         )
+    )
+
+    # -> Store SHA256 hash in traceability metadata
+    ctx.report.traceability_graph.metadata_store(
+        dataset_key, "sha256", sha256.hexdigest()
     )
 
     ctx.tmpdirs.append(tmpdir)
