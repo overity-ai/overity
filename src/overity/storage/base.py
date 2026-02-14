@@ -169,7 +169,7 @@ class StorageBackend(ABC):
 
         Returns:
             A tuple of (found_models, found_errors) where found_models is a list of
-            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
         """
 
     @abstractmethod
@@ -178,7 +178,7 @@ class StorageBackend(ABC):
 
         Returns:
             A tuple of (found_agents, found_errors) where found_agents is a list of
-            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
         """
 
     @abstractmethod
@@ -187,7 +187,7 @@ class StorageBackend(ABC):
 
         Returns:
             A tuple of (found_datasets, found_errors) where found_datasets is a list of
-            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
         """
 
     @abstractmethod

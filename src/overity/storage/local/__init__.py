@@ -577,7 +577,7 @@ class LocalStorage(StorageBackend):
 
         Returns:
             A tuple of (found_models, found_errors) where found_models is a list of
-            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
         """
 
         def process_file(x: Path):
@@ -585,21 +585,15 @@ class LocalStorage(StorageBackend):
 
             try:
                 metadata = ml_package.metadata_load(x)
-                # Compute SHA256 checksum of the archive file
-                sha256 = ml_package.package_sha256(x)
-                checksum = sha256.hexdigest()
-                return (slug, metadata, checksum)
+                return (slug, metadata)
             except Exception as exc:
                 return (slug, exc)
 
         processed = list(map(process_file, self.models_folder.glob("*.tar.gz")))
 
         # Isolate found models and errors
-        # FIXME: condition for len(x) == 3 is maybe not ideal
         found_models = list(
-            filter(
-                lambda x: isinstance(x[1], MLModelMetadata) and len(x) == 3, processed
-            )
+            filter(lambda x: isinstance(x[1], MLModelMetadata), processed)
         )
         found_errors = list(filter(lambda x: isinstance(x[1], Exception), processed))
 
@@ -610,7 +604,7 @@ class LocalStorage(StorageBackend):
 
         Returns:
             A tuple of (found_datasets, found_errors) where found_datasets is a list of
-            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
         """
 
         def process_file(x: Path):
@@ -618,21 +612,15 @@ class LocalStorage(StorageBackend):
 
             try:
                 metadata = dataset_package.metadata_load(x)
-                # Compute SHA256 checksum of the archive file
-                sha256 = dataset_package.package_sha256(x)
-                checksum = sha256.hexdigest()
-                return (slug, metadata, checksum)
+                return (slug, metadata)
             except Exception as exc:
                 return (slug, exc)
 
         processed = list(map(process_file, self.datasets_folder.glob("*.tar.gz")))
 
         # Isolate found datasets and errors
-        # FIXME: condition for len(x) == 3 is maybe not ideal
         found_datasets = list(
-            filter(
-                lambda x: isinstance(x[1], DatasetMetadata) and len(x) == 3, processed
-            )
+            filter(lambda x: isinstance(x[1], DatasetMetadata), processed)
         )
         found_errors = list(filter(lambda x: isinstance(x[1], Exception), processed))
 
@@ -643,7 +631,7 @@ class LocalStorage(StorageBackend):
 
         Returns:
             A tuple of (found_agents, found_errors) where found_agents is a list of
-            (slug, metadata, checksum) tuples and found_errors is a list of (slug, exception) tuples
+            (slug, metadata) tuples and found_errors is a list of (slug, exception) tuples
         """
 
         def process_file(x: Path):
@@ -651,20 +639,16 @@ class LocalStorage(StorageBackend):
 
             try:
                 metadata = agent_package.metadata_load(x)
-                # Compute SHA256 checksum of the archive file
-                sha256 = agent_package.package_sha256(x)
-                checksum = sha256.hexdigest()
-                return (slug, metadata, checksum)
+                return (slug, metadata)
             except Exception as exc:
                 return (slug, exc)
 
         processed = list(map(process_file, self.agents_folder.glob("*.tar.gz")))
 
         # Isolate found agents and errors
-        # FIXME: Condition len(x) == 3 is maybe not ideal
         found_agents = list(
             filter(
-                lambda x: isinstance(x[1], InferenceAgentMetadata) and len(x) == 3,
+                lambda x: isinstance(x[1], InferenceAgentMetadata),
                 processed,
             )
         )

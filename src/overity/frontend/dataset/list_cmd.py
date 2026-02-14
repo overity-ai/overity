@@ -47,14 +47,13 @@ def run(args: Namespace):
         print(f"Found the following datasets in {pdir}:")
         print("")
 
-        headers = ("Dataset slug", "Dataset name", "SHA256 checksum")
+        headers = ("Dataset slug", "Dataset name")
         rows = (
             (
                 dataset_slug,
                 dataset_info.name,
-                checksum[:16] + "..." if len(checksum) > 16 else checksum,
             )
-            for dataset_slug, dataset_info, checksum in datasets
+            for dataset_slug, dataset_info in datasets
         )
 
         print(f_table.table_format(headers, rows))

@@ -20,14 +20,13 @@ log = logging.getLogger("backend.dataset")
 
 
 def list_datasets(program_path: Path):
-    """List the current available datasets with their SHA256 checksums"""
+    """List the current available datasets"""
 
     program_path = Path(program_path)
 
     log.info(f"List available datasets from program {program_path}")
     st = LocalStorage(program_path)
 
-    # The storage returns (slug, metadata, checksum) tuples
     datasets, errors = st.datasets()
 
     return datasets, errors

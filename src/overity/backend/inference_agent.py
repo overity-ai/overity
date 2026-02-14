@@ -20,14 +20,13 @@ log = logging.getLogger("backend.inference_agents")
 
 
 def list_agents(program_path: Path):
-    """List the current available inference agents with their SHA256 checksums"""
+    """List the current available inference agents"""
 
     program_path = Path(program_path)
 
     log.info(f"List inference agents from program {program_path}")
     st = LocalStorage(program_path)
 
-    # The storage returns (slug, metadata, checksum) tuples
     agents, errors = st.inference_agents()
 
     return agents, errors

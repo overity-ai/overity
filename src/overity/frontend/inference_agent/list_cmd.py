@@ -48,14 +48,13 @@ def run(args: Namespace):
         print(f"Found the following agents in {pdir}:")
         print("")
 
-        headers = ("Agent slug", "Agent name", "SHA256 checksum")
+        headers = ("Agent slug", "Agent name")
         rows = (
             (
                 agt_slug,
                 agt_info.name,
-                checksum[:16] + "..." if len(checksum) > 16 else checksum,
             )
-            for agt_slug, agt_info, checksum in agents
+            for agt_slug, agt_info in agents
         )
 
         print(f_table.table_format(headers, rows))

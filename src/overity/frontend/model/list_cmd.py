@@ -47,14 +47,13 @@ def run(args: Namespace):
         print(f"Found the following models in {pdir}:")
         print("")
 
-        headers = ("Model slug", "Model name", "SHA256 checksum")
+        headers = ("Model slug", "Model name")
         rows = (
             (
                 mod_slug,
                 mod_info.name,
-                checksum[:16] + "..." if len(checksum) > 16 else checksum,
             )
-            for mod_slug, mod_info, checksum in models
+            for mod_slug, mod_info in models
         )
 
         print(f_table.table_format(headers, rows))
