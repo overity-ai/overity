@@ -494,7 +494,7 @@ class LocalStorage(StorageBackend):
         """
 
         # Find the nearest repo from the ingredients folder
-        path_to_repo = git_utils.nearest_repo(self.ingredients_folder)
+        path_to_repo = git_utils.nearest_repo(self.base_folder)
 
         if path_to_repo is None:
             return VersioningStatus.NotVersioned
@@ -532,7 +532,7 @@ class LocalStorage(StorageBackend):
         """
 
         try:
-            cur_commit = git_utils.current_commit(self.ingredients_folder)
+            cur_commit = git_utils.current_commit(self.base_folder)
             return cur_commit
         except RuntimeError:
             raise NoVersionAvailable(f"ingredients in {str(self.ingredients_folder)!r}")

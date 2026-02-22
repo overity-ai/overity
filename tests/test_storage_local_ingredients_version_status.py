@@ -1,8 +1,12 @@
 """
-Unit tests for ingredients_version_status function
+Unit tests for ingredients_version_status and ingredients_version_info functions
+Uses real git repositories in temporary folders for integration testing
 """
 
+import subprocess
 import pytest
+import tempfile
+import shutil
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -11,8 +15,262 @@ from overity.model.versioning import VersioningStatus
 from overity.errors import NoVersionAvailable
 
 
+def run_git(args, cwd=None):
+    """Helper to run git commands"""
+    result = subprocess.run(
+        ["git"] + args, cwd=str(cwd) if cwd else None, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"git command failed: {result.stderr}")
+    return result
+
+
+def create_git_repo(path, with_commit=True):
+    """Create a git repository at the given path"""
+    path = Path(path)
+    path.mkdir(parents=True, exist_ok=True)
+    run_git(["init"], cwd=path)
+    run_git(["config", "user.email", "test@test.com"], cwd=path)
+    run_git(["config", "user.name", "Test User"], cwd=path)
+
+    if with_commit:
+        # Create initial commit
+        (path / "README.md").write_text("# Test repo")
+        run_git(["add", "README.md"], cwd=path)
+        run_git(["commit", "-m", "Initial commit"], cwd=path)
+
+    return path
+
+
+def create_git_submodule(parent_path, submodule_name, with_commit=True):
+    """Create a git submodule within a parent repo"""
+    submodule_path = parent_path / submodule_name
+    create_git_repo(submodule_path, with_commit=with_commit)
+
+    # Add as submodule to parent
+    run_git(["submodule", "add", str(submodule_path), submodule_name], cwd=parent_path)
+    run_git(["commit", "-m", f"Add {submodule_name} submodule"], cwd=parent_path)
+
+    return submodule_path
+
+
+@pytest.fixture
+def temp_dir():
+    """Create a temporary directory for tests"""
+    tmp = tempfile.mkdtemp()
+    yield Path(tmp)
+    shutil.rmtree(tmp)
+
+
+class TestIngredientsVersionStatusIntegration:
+    """Integration tests for ingredients_version_status with real git repos"""
+
+    def test_clean_no_changes_real_repo(self, temp_dir):
+        """Test when ingredients folder is clean in a real git repo"""
+        # Create a repo with ingredients folder
+        create_git_repo(temp_dir)
+        ingredients_dir = temp_dir / "ingredients"
+        ingredients_dir.mkdir()
+        (ingredients_dir / "method.py").write_text("# method")
+        run_git(["add", "."], cwd=temp_dir)
+        run_git(["commit", "-m", "Add ingredients"], cwd=temp_dir)
+
+        storage = LocalStorage(temp_dir)
+        result = storage.ingredients_version_status()
+
+        assert result == VersioningStatus.Clean
+
+    def test_dirty_with_uncommitted_changes_real_repo(self, temp_dir):
+        """Test when there are uncommitted changes in ingredients"""
+        # Create a repo with ingredients folder
+        create_git_repo(temp_dir)
+        ingredients_dir = temp_dir / "ingredients"
+        ingredients_dir.mkdir()
+        (ingredients_dir / "method.py").write_text("# method")
+        run_git(["add", "."], cwd=temp_dir)
+        run_git(["commit", "-m", "Add ingredients"], cwd=temp_dir)
+
+        # Add uncommitted change
+        (ingredients_dir / "method.py").write_text("# modified method")
+
+        storage = LocalStorage(temp_dir)
+        result = storage.ingredients_version_status()
+
+        assert result == VersioningStatus.Dirty
+
+    def test_clean_changes_outside_ingredients_real_repo(self, temp_dir):
+        """Test that changes outside ingredients don't affect status"""
+        create_git_repo(temp_dir)
+
+        # Create ingredients folder
+        ingredients_dir = temp_dir / "ingredients"
+        ingredients_dir.mkdir()
+        (ingredients_dir / "method.py").write_text("# method")
+        run_git(["add", "."], cwd=temp_dir)
+        run_git(["commit", "-m", "Add ingredients"], cwd=temp_dir)
+
+        # Add file outside ingredients
+        (temp_dir / "other.txt").write_text("other content")
+        run_git(["add", "other.txt"], cwd=temp_dir)
+
+        storage = LocalStorage(temp_dir)
+        result = storage.ingredients_version_status()
+
+        assert result == VersioningStatus.Clean
+
+    def test_not_versioned_no_git_repo_real(self, temp_dir):
+        """Test when there is no git repository"""
+        # Just create a folder without git
+        (temp_dir / "ingredients").mkdir()
+        (temp_dir / "ingredients" / "file.txt").write_text("content")
+
+        storage = LocalStorage(temp_dir)
+        result = storage.ingredients_version_status()
+
+        assert result == VersioningStatus.NotVersioned
+
+    def test_ingredients_is_git_submodule_clean_real(self, temp_dir):
+        """Test when ingredients folder is a git submodule (clean)"""
+        # Create parent repo
+        create_git_repo(temp_dir)
+
+        # Create ingredients as a separate repo (will be submodule)
+        ingredients_dir = temp_dir / "ingredients"
+        create_git_repo(ingredients_dir)
+        (ingredients_dir / "method.py").write_text("# method")
+        run_git(["add", "."], cwd=ingredients_dir)
+        run_git(["commit", "-m", "Add method"], cwd=ingredients_dir)
+
+        # Add the submodule folder to parent repo
+        # Note: We don't use git submodule add here, just track the folder
+        # The ingredients folder itself is a separate repo
+        # For the test to be clean, we need to commit the submodule reference
+        run_git(["add", "ingredients"], cwd=temp_dir)
+        run_git(["commit", "-m", "Add ingredients submodule"], cwd=temp_dir)
+
+        storage = LocalStorage(temp_dir)
+        result = storage.ingredients_version_status()
+
+        assert result == VersioningStatus.Clean
+
+    def test_ingredients_is_git_submodule_dirty_real(self, temp_dir):
+        """Test when ingredients folder is a git submodule (dirty)"""
+        # Create parent repo
+        create_git_repo(temp_dir)
+
+        # Create ingredients as a separate repo (will be submodule)
+        ingredients_dir = temp_dir / "ingredients"
+        create_git_repo(ingredients_dir)
+        (ingredients_dir / "method.py").write_text("# method")
+        run_git(["add", "."], cwd=ingredients_dir)
+        run_git(["commit", "-m", "Add method"], cwd=ingredients_dir)
+
+        # Make uncommitted change
+        (ingredients_dir / "method.py").write_text("# modified method")
+
+        storage = LocalStorage(temp_dir)
+        result = storage.ingredients_version_status()
+
+        assert result == VersioningStatus.Dirty
+
+
+class TestIngredientsVersionInfoIntegration:
+    """Integration tests for ingredients_version_info with real git repos"""
+
+    def test_returns_real_commit_hash(self, temp_dir):
+        """Test returning an actual git commit hash"""
+        create_git_repo(temp_dir)
+        (temp_dir / "file.txt").write_text("content")
+        run_git(["add", "."], cwd=temp_dir)
+        run_git(["commit", "-m", "Initial commit"], cwd=temp_dir)
+
+        # Get the actual commit hash
+        result = run_git(["rev-parse", "HEAD"], cwd=temp_dir)
+        expected_hash = result.stdout.strip()
+
+        storage = LocalStorage(temp_dir)
+        version_info = storage.ingredients_version_info()
+
+        assert version_info == expected_hash
+        assert len(version_info) == 40  # SHA-1 hash length
+
+    def test_returns_different_hash_after_new_commit(self, temp_dir):
+        """Test that new commits return different hashes"""
+        create_git_repo(temp_dir)
+        (temp_dir / "file.txt").write_text("content")
+        run_git(["add", "."], cwd=temp_dir)
+        run_git(["commit", "-m", "First commit"], cwd=temp_dir)
+
+        storage = LocalStorage(temp_dir)
+        hash1 = storage.ingredients_version_info()
+
+        # Make another commit
+        (temp_dir / "file.txt").write_text("modified content")
+        run_git(["add", "."], cwd=temp_dir)
+        run_git(["commit", "-m", "Second commit"], cwd=temp_dir)
+
+        hash2 = storage.ingredients_version_info()
+
+        assert hash1 != hash2
+        assert len(hash1) == 40
+        assert len(hash2) == 40
+
+    def test_raises_no_version_available_no_git_real(self, temp_dir):
+        """Test raising NoVersionAvailable when no git repo exists"""
+        # Create a folder without git
+        (temp_dir / "ingredients").mkdir()
+
+        storage = LocalStorage(temp_dir)
+        with pytest.raises(NoVersionAvailable):
+            storage.ingredients_version_info()
+
+    def test_raises_no_version_available_no_commits_real(self, temp_dir):
+        """Test raising NoVersionAvailable when repo has no commits"""
+        # Create repo but don't make any commits
+        create_git_repo(temp_dir, with_commit=False)
+
+        storage = LocalStorage(temp_dir)
+        with pytest.raises(NoVersionAvailable):
+            storage.ingredients_version_info()
+
+    def test_returns_commit_from_parent_repo_when_ingredients_is_submodule(
+        self, temp_dir
+    ):
+        """Test that version info comes from parent repo, not submodule"""
+        # Create parent repo
+        create_git_repo(temp_dir)
+
+        # Create ingredients as a submodule with its own repo
+        ingredients_dir = temp_dir / "ingredients"
+        create_git_repo(ingredients_dir)
+        (ingredients_dir / "method.py").write_text("# method")
+        run_git(["add", "."], cwd=ingredients_dir)
+        run_git(["commit", "-m", "Add method"], cwd=ingredients_dir)
+
+        # Add ingredients to parent and commit
+        run_git(["add", "ingredients"], cwd=temp_dir)
+        run_git(["commit", "-m", "Add ingredients submodule"], cwd=temp_dir)
+
+        # Get the parent repo commit hash (not the submodule's)
+        result = run_git(["rev-parse", "HEAD"], cwd=temp_dir)
+        expected_parent_hash = result.stdout.strip()
+
+        storage = LocalStorage(temp_dir)
+        version_info = storage.ingredients_version_info()
+
+        # The implementation uses base_folder, so it returns the parent's commit
+        assert version_info == expected_parent_hash
+
+        # Verify it's different from the submodule's commit
+        submodule_hash = run_git(
+            ["rev-parse", "HEAD"], cwd=ingredients_dir
+        ).stdout.strip()
+        assert version_info != submodule_hash
+
+
+# Keep existing mocked unit tests for edge cases
 class TestIngredientsVersionStatus:
-    """Tests for ingredients_version_status function"""
+    """Unit tests for ingredients_version_status function"""
 
     def test_not_versioned_no_git_repo(self):
         """Test when there is no git repository"""
@@ -23,7 +281,7 @@ class TestIngredientsVersionStatus:
             result = storage.ingredients_version_status()
 
             assert result == VersioningStatus.NotVersioned
-            mock_nearest.assert_called_once_with(storage.ingredients_folder)
+            mock_nearest.assert_called_once_with(storage.base_folder)
 
     def test_clean_no_changes(self):
         """Test when ingredients folder is clean (no changes)"""
@@ -42,7 +300,7 @@ class TestIngredientsVersionStatus:
             result = storage.ingredients_version_status()
 
             assert result == VersioningStatus.Clean
-            mock_nearest.assert_called_once_with(storage.ingredients_folder)
+            mock_nearest.assert_called_once_with(storage.base_folder)
             mock_git_status.assert_called_once_with(
                 str(Path("/test/program/ingredients"))
             )
@@ -95,58 +353,6 @@ class TestIngredientsVersionStatus:
 
             assert result == VersioningStatus.Dirty
 
-    def test_dirty_multiple_changes_some_inside(self):
-        """Test when some changes are inside and some outside ingredients"""
-        with patch(
-            "overity.storage.local.git_utils.nearest_repo"
-        ) as mock_nearest, patch(
-            "overity.storage.local.git_utils.git_status"
-        ) as mock_git_status, patch(
-            "overity.storage.local.path_utils.is_subpath"
-        ) as mock_is_subpath:
-            mock_nearest.return_value = Path("/test/program")
-
-            # Create mock changes - one inside, one outside
-            mock_change1 = MagicMock()
-            mock_change1.from_path = "other_folder/file.txt"
-            mock_change2 = MagicMock()
-            mock_change2.from_path = "ingredients/measurement_qualification/test.py"
-            mock_git_status.return_value = [mock_change1, mock_change2]
-
-            # First call (outside) returns False, second call (inside) returns True
-            mock_is_subpath.side_effect = [False, True]
-
-            storage = LocalStorage(Path("/test/program"))
-            result = storage.ingredients_version_status()
-
-            assert result == VersioningStatus.Dirty
-            assert mock_is_subpath.call_count == 2
-
-    def test_ingredients_at_repo_root(self):
-        """Test when ingredients folder is at the repo root"""
-        with patch(
-            "overity.storage.local.git_utils.nearest_repo"
-        ) as mock_nearest, patch(
-            "overity.storage.local.git_utils.git_status"
-        ) as mock_git_status, patch(
-            "overity.storage.local.path_utils.is_subpath"
-        ) as mock_is_subpath:
-            # Ingredients folder IS the repo root
-            mock_nearest.return_value = Path("/test/program/ingredients")
-
-            # Some changes in the repo
-            mock_change = MagicMock()
-            mock_change.from_path = "training_optimization/new_method.py"
-            mock_git_status.return_value = [mock_change]
-
-            # All changes are within ingredients (since ingredients is the root)
-            mock_is_subpath.return_value = True
-
-            storage = LocalStorage(Path("/test/program"))
-            result = storage.ingredients_version_status()
-
-            assert result == VersioningStatus.Dirty
-
     def test_ingredients_not_under_repo(self):
         """Test when ingredients folder is not under the found repo"""
         with patch(
@@ -176,93 +382,9 @@ class TestIngredientsVersionStatus:
                 # git_status should not be called since ingredients is not under repo
                 mock_git_status.assert_not_called()
 
-    def test_repo_in_parent_directory(self):
-        """Test when repo is in a parent directory of ingredients"""
-        with patch(
-            "overity.storage.local.git_utils.nearest_repo"
-        ) as mock_nearest, patch(
-            "overity.storage.local.git_utils.git_status"
-        ) as mock_git_status, patch(
-            "overity.storage.local.path_utils.is_subpath"
-        ) as mock_is_subpath:
-            # Repo is two levels up from ingredients
-            mock_nearest.return_value = Path("/test")
-
-            # Changes in various locations
-            mock_change = MagicMock()
-            mock_change.from_path = "program/ingredients/lib/helper.py"
-            mock_git_status.return_value = [mock_change]
-
-            mock_is_subpath.return_value = True
-
-            storage = LocalStorage(Path("/test/program"))
-            result = storage.ingredients_version_status()
-
-            assert result == VersioningStatus.Dirty
-            # Verify git_status was called with the repo path
-            mock_git_status.assert_called_once_with("/test")
-
-    def test_empty_git_status_clean(self):
-        """Test that empty git status results in Clean"""
-        with patch(
-            "overity.storage.local.git_utils.nearest_repo"
-        ) as mock_nearest, patch(
-            "overity.storage.local.git_utils.git_status"
-        ) as mock_git_status:
-            mock_nearest.return_value = Path("/test/program")
-            mock_git_status.return_value = []
-
-            storage = LocalStorage(Path("/test/program"))
-            result = storage.ingredients_version_status()
-
-            assert result == VersioningStatus.Clean
-
-    def test_all_changes_filtered_out_clean(self):
-        """Test when all changes are outside ingredients folder"""
-        with patch(
-            "overity.storage.local.git_utils.nearest_repo"
-        ) as mock_nearest, patch(
-            "overity.storage.local.git_utils.git_status"
-        ) as mock_git_status, patch(
-            "overity.storage.local.path_utils.is_subpath"
-        ) as mock_is_subpath:
-            mock_nearest.return_value = Path("/test/program")
-
-            # Multiple changes but all outside ingredients
-            mock_changes = [
-                MagicMock(from_path="shelf/report.json"),
-                MagicMock(from_path="catalyst/bench.toml"),
-                MagicMock(from_path="README.md"),
-            ]
-            mock_git_status.return_value = mock_changes
-
-            # All changes are outside ingredients
-            mock_is_subpath.return_value = False
-
-            storage = LocalStorage(Path("/test/program"))
-            result = storage.ingredients_version_status()
-
-            assert result == VersioningStatus.Clean
-            assert mock_is_subpath.call_count == 3
-
 
 class TestIngredientsVersionInfo:
-    """Tests for ingredients_version_info function"""
-
-    def test_returns_commit_hash_success(self):
-        """Test successfully returning the current commit hash"""
-        with patch(
-            "overity.storage.local.git_utils.current_commit"
-        ) as mock_current_commit:
-            expected_hash = "abc123def456789012345678901234567890abcd"
-            mock_current_commit.return_value = expected_hash
-
-            storage = LocalStorage(Path("/test/program"))
-            result = storage.ingredients_version_info()
-
-            assert result == expected_hash
-            assert len(result) == 40
-            mock_current_commit.assert_called_once_with(storage.ingredients_folder)
+    """Unit tests for ingredients_version_info function"""
 
     def test_raises_no_version_available_no_git(self):
         """Test raising NoVersionAvailable when git command fails"""
@@ -278,40 +400,6 @@ class TestIngredientsVersionInfo:
             assert "ingredients" in str(exc_info.value)
             assert "/test/program/ingredients" in str(exc_info.value)
 
-    def test_raises_no_version_available_no_commits(self):
-        """Test raising NoVersionAvailable when repo has no commits"""
-        with patch(
-            "overity.storage.local.git_utils.current_commit"
-            # 1
-        ) as mock_current_commit:
-            mock_current_commit.side_effect = RuntimeError(
-                "git rev-parse failed: fatal: not a git repository"
-            )
-
-            storage = LocalStorage(Path("/test/program"))
-            with pytest.raises(NoVersionAvailable):
-                storage.ingredients_version_info()
-
-    def test_returns_different_hash_for_different_commits(self):
-        """Test that different commits return different hashes"""
-        with patch(
-            "overity.storage.local.git_utils.current_commit"
-        ) as mock_current_commit:
-            commit1 = "abc123def456789012345678901234567890abcd"
-            commit2 = "def789abc123456789012345678901234567890a"
-
-            # First call returns commit1, second call returns commit2
-            mock_current_commit.side_effect = [commit1, commit2]
-
-            storage = LocalStorage(Path("/test/program"))
-
-            result1 = storage.ingredients_version_info()
-            result2 = storage.ingredients_version_info()
-
-            assert result1 == commit1
-            assert result2 == commit2
-            assert result1 != result2
-
     def test_path_passed_correctly_to_current_commit(self):
         """Test that ingredients folder path is passed correctly to current_commit"""
         with patch(
@@ -325,4 +413,4 @@ class TestIngredientsVersionInfo:
             # Verify the correct path was passed
             mock_current_commit.assert_called_once()
             call_args = mock_current_commit.call_args[0][0]
-            assert str(call_args) == "/some/deeply/nested/program/path/ingredients"
+            assert str(call_args) == "/some/deeply/nested/program/path"
