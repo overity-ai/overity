@@ -8,6 +8,7 @@ from unittest.mock import patch, MagicMock
 
 from overity.storage.local import LocalStorage
 from overity.model.versioning import VersioningStatus
+from overity.errors import NoVersionAvailable
 
 
 class TestIngredientsVersionStatus:
@@ -243,3 +244,85 @@ class TestIngredientsVersionStatus:
 
             assert result == VersioningStatus.Clean
             assert mock_is_subpath.call_count == 3
+
+
+class TestIngredientsVersionInfo:
+    """Tests for ingredients_version_info function"""
+
+    def test_returns_commit_hash_success(self):
+        """Test successfully returning the current commit hash"""
+        with patch(
+            "overity.storage.local.git_utils.current_commit"
+        ) as mock_current_commit:
+            expected_hash = "abc123def456789012345678901234567890abcd"
+            mock_current_commit.return_value = expected_hash
+
+            storage = LocalStorage(Path("/test/program"))
+            result = storage.ingredients_version_info()
+
+            assert result == expected_hash
+            assert len(result) == 40
+            mock_current_commit.assert_called_once_with(storage.ingredients_folder)
+
+    def test_raises_no_version_available_no_git(self):
+        """Test raising NoVersionAvailable when git command fails"""
+        with patch(
+            "overity.storage.local.git_utils.current_commit"
+        ) as mock_current_commit:
+            mock_current_commit.side_effect = RuntimeError("git command not found")
+
+            storage = LocalStorage(Path("/test/program"))
+            with pytest.raises(NoVersionAvailable) as exc_info:
+                storage.ingredients_version_info()
+
+            assert "ingredients" in str(exc_info.value)
+            assert "/test/program/ingredients" in str(exc_info.value)
+
+    def test_raises_no_version_available_no_commits(self):
+        """Test raising NoVersionAvailable when repo has no commits"""
+        with patch(
+            "overity.storage.local.git_utils.current_commit"
+            # 1
+        ) as mock_current_commit:
+            mock_current_commit.side_effect = RuntimeError(
+                "git rev-parse failed: fatal: not a git repository"
+            )
+
+            storage = LocalStorage(Path("/test/program"))
+            with pytest.raises(NoVersionAvailable):
+                storage.ingredients_version_info()
+
+    def test_returns_different_hash_for_different_commits(self):
+        """Test that different commits return different hashes"""
+        with patch(
+            "overity.storage.local.git_utils.current_commit"
+        ) as mock_current_commit:
+            commit1 = "abc123def456789012345678901234567890abcd"
+            commit2 = "def789abc123456789012345678901234567890a"
+
+            # First call returns commit1, second call returns commit2
+            mock_current_commit.side_effect = [commit1, commit2]
+
+            storage = LocalStorage(Path("/test/program"))
+
+            result1 = storage.ingredients_version_info()
+            result2 = storage.ingredients_version_info()
+
+            assert result1 == commit1
+            assert result2 == commit2
+            assert result1 != result2
+
+    def test_path_passed_correctly_to_current_commit(self):
+        """Test that ingredients folder path is passed correctly to current_commit"""
+        with patch(
+            "overity.storage.local.git_utils.current_commit"
+        ) as mock_current_commit:
+            mock_current_commit.return_value = "abc123" + "0" * 36
+
+            storage = LocalStorage(Path("/some/deeply/nested/program/path"))
+            storage.ingredients_version_info()
+
+            # Verify the correct path was passed
+            mock_current_commit.assert_called_once()
+            call_args = mock_current_commit.call_args[0][0]
+            assert str(call_args) == "/some/deeply/nested/program/path/ingredients"

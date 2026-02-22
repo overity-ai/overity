@@ -60,6 +60,7 @@ from overity.errors import (
     DatasetNotFound,
     ReportNotFound,
     MethodNotFound,
+    NoVersionAvailable,
 )
 
 from overity.exchange.model_package_v1 import package as ml_package
@@ -520,6 +521,21 @@ class LocalStorage(StorageBackend):
             return VersioningStatus.Dirty
         else:
             return VersioningStatus.Clean
+
+    def ingredients_version_info(self) -> str:
+        """Get the current version information for the ingredients folder
+
+        Returns:
+            a string that describes the used version for ingredients (e.g., git commit hash)
+
+        NOTE: if there is no versioning information available, this function raises NoVersionAvailable error
+        """
+
+        try:
+            cur_commit = git_utils.current_commit(self.ingredients_folder)
+            return cur_commit
+        except RuntimeError:
+            raise NoVersionAvailable(f"ingredients in {str(self.ingredients_folder)!r}")
 
     # -------------------------- Shelf
 

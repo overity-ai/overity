@@ -85,6 +85,10 @@ class StorageBackend(ABC):
     def ingredients_version_status(self) -> VersioningStatus:
         """Get the current versioning status of ingredients"""
 
+    @abstractmethod
+    def ingredients_version_info(self) -> str:
+        """Get the current version information for ingredients"""
+
     # -------------------------- Shelf
 
     @abstractmethod
