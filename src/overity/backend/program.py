@@ -22,6 +22,8 @@ from overity.exchange import program_toml
 
 from overity.model.general_info.program import ProgramInitiator, ProgramInfo
 
+from overity.utils.path import iter_path
+
 from datetime import date
 
 log = logging.getLogger("backend.program")
@@ -37,20 +39,6 @@ def is_program(path: Path):
     return (path / "program.toml").is_file()
 
 
-def _iter_path(pp: Path):
-    """Iterate path from cwd to filesystem root, generator style!"""
-
-    cur_path = pp
-
-    while True:
-        yield cur_path
-
-        if cur_path.parent != cur_path:
-            cur_path = cur_path.parent
-        else:
-            break
-
-
 def find_current(start_path: Path):
     log.debug(f"Search program root folder starting from {start_path}")
 
@@ -58,7 +46,7 @@ def find_current(start_path: Path):
         return start_path
 
     else:
-        for subpath in _iter_path(start_path.parent):
+        for subpath in iter_path(start_path.parent):
             log.debug(f"Check parent path: {subpath}")
 
             if is_program(subpath):

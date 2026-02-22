@@ -16,8 +16,11 @@ from typing import Self
 
 import subprocess
 
+from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
+
+from overity.utils.path import iter_path
 
 
 class GitStatusEntryKind(Enum):
@@ -141,3 +144,66 @@ def git_status(repo_path: str) -> list[GitStatusEntry]:
             )
 
     return entries
+
+
+def is_repo(cwd: Path) -> bool:
+    """Check if the given folder has a git repo or not
+
+    Args:
+        cwd: Path to check
+
+    Returns:
+        a boolean value indicating if the folder is a git repo root or not
+
+    NOTE: This only work on "standard" git repos, not worktrees or bare repos
+    """
+
+    return (cwd / ".git").is_dir()
+
+
+def nearest_repo(cwd: Path) -> Path | None:
+    """Find the path to the nearest git repo
+
+    Args:
+        cwd: starting path
+
+    Returns:
+        Path to the nearest git repo, or None if no repo is found
+
+
+    NOTE: This method only support traditional git repos, not worktrees or bare repos
+    """
+
+    # The idea of this method is simple: Find the nearest .git folder
+    if is_repo(cwd):
+        return cwd
+
+    else:
+        for subpath in iter_path(cwd.parent):
+            if is_repo(subpath):
+                return subpath
+
+        else:
+            return None
+
+
+def farthest_repo(cwd: Path) -> Path | None:
+    """Find the repo that is the closer to the root starting from a given folder
+
+    Args:
+        cwd: starting path
+
+    Returns:
+        Path to the farthest repo, the closer to the root, or None if no repo is Found
+
+    NOTE: This method currently supports traditional git repos, not worktrees or bare repos
+    """
+
+    # The idea of this method is simple: Find the farthest .git folder
+    cur_repo = None
+
+    for subpath in iter_path(cwd):
+        if is_repo(subpath):
+            cur_repo = subpath
+
+    return cur_repo
