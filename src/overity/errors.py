@@ -188,3 +188,8 @@ class DuplicateFigureError(Exception):
 class NoVersionAvailable(Exception):
     def __init__(self, what: str):
         super().__init__(f"No version available for: {what}")
+
+
+class VersioningInconsistencyError(Exception):
+    def __init__(self):
+        super().__init__("Cannot guarentee versioning consistency")

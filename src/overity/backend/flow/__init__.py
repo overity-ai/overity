@@ -67,6 +67,8 @@ from overity.model.report.metrics import (
     PercentageValue,
 )
 
+from overity.model.versioning import VersioningStatus
+
 from overity.exchange import report_json
 from overity.exchange.method_common import file_py, file_ipynb
 from overity.errors import (
@@ -75,6 +77,7 @@ from overity.errors import (
     NotInDMQError,
     InvalidEpochValue,
     DuplicateFigureError,
+    VersioningInconsistencyError,
 )
 
 from overity.backend.flow.ctx import FlowCtx, RunMode
@@ -199,6 +202,37 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
     log.info(f"Add lib folder to python path: {ctx.storage.lib()}")
     sys.path.append(str(ctx.storage.lib()))
 
+    # Get versioning status and information for ingredients
+    log.info("Get versioning status and information for ingredients")
+    ingredients_version_status = ctx.storage.ingredients_version_status()
+    ingredients_version_info = (
+        ctx.storage.ingredients_version_info()
+        if ingredients_version_status != VersioningStatus.NotVersioned
+        else None
+    )
+
+    catalyst_version_status = ctx.storage.catalyst_version_status()
+    catalyst_version_info = (
+        ctx.storage.catalyst_version_info()
+        if catalyst_version_status != VersioningStatus.NotVersioned
+        else None
+    )
+
+    log.info(f"-> Ingredients versioning status: {ingredients_version_status.value}")
+    log.info(f"-> Ingredients versioning info: {ingredients_version_info!r}")
+    log.info(f"-> Catalyst versioning status: {catalyst_version_status.value}")
+    log.info(f"-> Catalyst versioning info: {catalyst_version_info!r}")
+
+    if ctx.stage == MethodExecutionStage.Operation:
+        if ingredients_version_status != VersioningStatus.Clean:
+            raise VersioningInconsistencyError()
+
+    else:
+        if ingredients_version_status != VersioningStatus.Clean:
+            log.warning(
+                f"Versioning of the ingredients folder is: {ingredients_version_status.value!r}. Traceability may not be guarenteed"
+            )
+
     # Initialize run traceability information
     # TODO: For other types
     # TODO: This is ugly.
@@ -231,6 +265,14 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
             )
         )
 
+        # Add versioning information for method
+        if ingredients_version_info is not None:
+            ctx.report.traceability_graph.metadata_store(
+                ctx.report.method_key,
+                "commit",
+                ingredients_version_info,
+            )
+
     elif ctx.method_kind == MethodKind.MeasurementQualification:
         ctx.report.method_key = ArtifactKey(
             kind=ArtifactKind.MeasurementQualificationMethod, id=ctx.method_slug
@@ -259,6 +301,14 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
                 kind=ArtifactLinkKind.MethodUse,
             )
         )
+
+        # Add versioning information for method
+        if ingredients_version_info is not None:
+            ctx.report.traceability_graph.metadata_store(
+                ctx.report.method_key,
+                "commit",
+                ingredients_version_info,
+            )
 
     else:
         raise NotImplementedError
@@ -313,6 +363,16 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
                 a=ctx.report.run_key, b=k_bench, kind=ArtifactLinkKind.BenchUse
             )
         )
+
+        if ingredients_version_info is not None:
+            # TODO: Catalyst versioning info
+            ctx.report.traceability_graph.metadata_store(
+                k_bench, "commit", catalyst_version_info
+            )
+
+            ctx.report.traceability_graph.metadata_store(
+                k_abstr, "commit", ingredients_version_info
+            )
 
         # -> Log some infos
         log.info("Bench information:")
