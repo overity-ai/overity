@@ -55,6 +55,14 @@ class StorageBackend(ABC):
     def benches(self):
         """Get list of bench definitions"""
 
+    @abstractmethod
+    def catalyst_version_status(self) -> VersioningStatus:
+        """Get the current versioning status of catalyst"""
+
+    @abstractmethod
+    def catalyst_version_info(self) -> str:
+        """Get the current version information for catalyst"""
+
     # -------------------------- Ingredients
 
     @abstractmethod
