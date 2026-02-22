@@ -33,6 +33,11 @@ from overity.model.inference_agent.package import InferenceAgentPackageInfo
 from overity.model.dataset.metadata import DatasetMetadata
 from overity.model.dataset.package import DatasetPackageInfo
 
+from overity.model.versioning import VersioningStatus
+
+from overity.utils import git as git_utils
+from overity.utils import path as path_utils
+
 
 from overity.exchange import (
     execution_target_toml,
@@ -470,6 +475,51 @@ class LocalStorage(StorageBackend):
     def lib(self):
         """Return the path containing additional python modules for methods implementation"""
         return self.lib_folder
+
+    def ingredients_version_status(self) -> VersioningStatus:
+        """Get the current versioning status of the ingredients folder
+
+        Returns:
+            VersioningStatus
+
+        In local storage backend implementation, consistency is given by the git status of the "ingredients" folder.
+        So the idea is to check the git status of the ingredients folder.
+
+        1. If any change is detected within the "ingredients" folder, the version status is dirty.
+        2. If no change is detected, then the ingredients folder is clean
+        3. If there is no git repository, we cannot track the current version
+
+        TODO: How to manage when the ingredients folder is in a different git repository than the laboratory folder?
+        """
+
+        # Find the nearest repo from the ingredients folder
+        path_to_repo = git_utils.nearest_repo(self.ingredients_folder)
+
+        if path_to_repo is None:
+            return VersioningStatus.NotVersioned
+
+        # Check if the ingredients folder is actually under the found repo
+        # If not, we cannot track the version
+        try:
+            ingredients_rel = self.ingredients_folder.relative_to(path_to_repo)
+        except ValueError:
+            # ingredients folder is not under the repo root
+            return VersioningStatus.NotVersioned
+
+        # Get git status for the repository
+        git_changes = git_utils.git_status(str(path_to_repo))
+
+        # Check if any changes are within the ingredients folder
+        changes = [
+            change
+            for change in git_changes
+            if path_utils.is_subpath(Path(change.from_path), ingredients_rel)
+        ]
+
+        if changes:
+            return VersioningStatus.Dirty
+        else:
+            return VersioningStatus.Clean
 
     # -------------------------- Shelf
 

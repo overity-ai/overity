@@ -72,7 +72,7 @@ def git_status(repo_path: str) -> list[GitStatusEntry]:
             cmd,
             capture_output=True,
             text=True,
-            cwd=repo_path,
+            cwd=str(repo_path),
             encoding="utf-8",
             errors="replace",
         )

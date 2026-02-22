@@ -28,6 +28,8 @@ from overity.model.inference_agent.package import InferenceAgentPackageInfo
 from overity.model.dataset.metadata import DatasetMetadata
 from overity.model.dataset.package import DatasetPackageInfo
 
+from overity.model.versioning import VersioningStatus
+
 from pathlib import Path
 
 # Type alias for hashlib hash objects
@@ -78,6 +80,10 @@ class StorageBackend(ABC):
     @abstractmethod
     def lib(self):
         """Get path to directory containing additional python modules"""
+
+    @abstractmethod
+    def ingredients_version_status(self) -> VersioningStatus:
+        """Get the current versioning status of ingredients"""
 
     # -------------------------- Shelf
 
