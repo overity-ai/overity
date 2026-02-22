@@ -207,3 +207,35 @@ def farthest_repo(cwd: Path) -> Path | None:
             cur_repo = subpath
 
     return cur_repo
+
+
+def current_commit(repo_path: str | Path) -> str:
+    """Get the current commit SHA1 hash of the repository
+
+    Args:
+        repo_path: Path to the git repository
+
+    Returns:
+        The current commit SHA1 hash as a string
+
+    Raises:
+        RuntimeError: If git command is not found, or if the repo has no commits yet,
+                      or if any other git error occurs
+    """
+    cmd = ["git", "rev-parse", "HEAD"]
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(repo_path),
+            encoding="utf-8",
+            errors="replace",
+        )
+    except FileNotFoundError:
+        raise RuntimeError("git command not found. Is git installed?")
+
+    if result.returncode != 0:
+        raise RuntimeError(f"git rev-parse failed: {result.stderr}")
+
+    return result.stdout.strip()
