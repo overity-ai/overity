@@ -33,6 +33,11 @@ from overity.model.inference_agent.package import InferenceAgentPackageInfo
 from overity.model.dataset.metadata import DatasetMetadata
 from overity.model.dataset.package import DatasetPackageInfo
 
+from overity.model.versioning import VersioningStatus
+
+from overity.utils import git as git_utils
+from overity.utils import path as path_utils
+
 
 from overity.exchange import (
     execution_target_toml,
@@ -55,6 +60,7 @@ from overity.errors import (
     DatasetNotFound,
     ReportNotFound,
     MethodNotFound,
+    NoVersionAvailable,
 )
 
 from overity.exchange.model_package_v1 import package as ml_package
@@ -270,6 +276,62 @@ class LocalStorage(StorageBackend):
             found_errors,
         )
 
+    def catalyst_version_status(self) -> VersioningStatus:
+        """Get the current versioning status of the catalyst folder
+
+        Returns:
+            VersioningStatus
+
+        1. If any change is detected within the "catalyst" folder, the version status is dirty.
+        2. If no change is detected, then the catalyst folder is clean
+        3. If there is no git repository, we cannot track the current version
+
+        """
+
+        # Find the nearest repo from the catalyst folder
+        path_to_repo = git_utils.nearest_repo(self.base_folder)
+
+        if path_to_repo is None:
+            return VersioningStatus.NotVersioned
+
+        # Check if the catalyst folder is actually under the found repo
+        # If not, we cannot track the version
+        try:
+            catalyst_rel = self.catalyst_folder.relative_to(path_to_repo)
+        except ValueError:
+            # catalyst folder is not under the repo root
+            return VersioningStatus.NotVersioned
+
+        # Get git status for the repository
+        git_changes = git_utils.git_status(str(path_to_repo))
+
+        # Check if any changes are within the catalyst folder
+        changes = [
+            change
+            for change in git_changes
+            if path_utils.is_subpath(Path(change.from_path), catalyst_rel)
+        ]
+
+        if changes:
+            return VersioningStatus.Dirty
+        else:
+            return VersioningStatus.Clean
+
+    def catalyst_version_info(self) -> str:
+        """Get the current version information for the catalyst folder
+
+        Returns:
+            a string that describes the used version for catalyst (e.g., git commit hash)
+
+        NOTE: if there is no versioning information available, this function raises NoVersionAvailable error
+        """
+
+        try:
+            cur_commit = git_utils.current_commit(self.base_folder)
+            return cur_commit
+        except RuntimeError:
+            raise NoVersionAvailable(f"catalyst in {str(self.catalyst_folder)!r}")
+
     # -------------------------- Ingredients
 
     def training_optimization_methods(self):
@@ -470,6 +532,66 @@ class LocalStorage(StorageBackend):
     def lib(self):
         """Return the path containing additional python modules for methods implementation"""
         return self.lib_folder
+
+    def ingredients_version_status(self) -> VersioningStatus:
+        """Get the current versioning status of the ingredients folder
+
+        Returns:
+            VersioningStatus
+
+        In local storage backend implementation, consistency is given by the git status of the "ingredients" folder.
+        So the idea is to check the git status of the ingredients folder.
+
+        1. If any change is detected within the "ingredients" folder, the version status is dirty.
+        2. If no change is detected, then the ingredients folder is clean
+        3. If there is no git repository, we cannot track the current version
+
+        TODO: How to manage when the ingredients folder is in a different git repository than the laboratory folder?
+        """
+
+        # Find the nearest repo from the ingredients folder
+        path_to_repo = git_utils.nearest_repo(self.base_folder)
+
+        if path_to_repo is None:
+            return VersioningStatus.NotVersioned
+
+        # Check if the ingredients folder is actually under the found repo
+        # If not, we cannot track the version
+        try:
+            ingredients_rel = self.ingredients_folder.relative_to(path_to_repo)
+        except ValueError:
+            # ingredients folder is not under the repo root
+            return VersioningStatus.NotVersioned
+
+        # Get git status for the repository
+        git_changes = git_utils.git_status(str(path_to_repo))
+
+        # Check if any changes are within the ingredients folder
+        changes = [
+            change
+            for change in git_changes
+            if path_utils.is_subpath(Path(change.from_path), ingredients_rel)
+        ]
+
+        if changes:
+            return VersioningStatus.Dirty
+        else:
+            return VersioningStatus.Clean
+
+    def ingredients_version_info(self) -> str:
+        """Get the current version information for the ingredients folder
+
+        Returns:
+            a string that describes the used version for ingredients (e.g., git commit hash)
+
+        NOTE: if there is no versioning information available, this function raises NoVersionAvailable error
+        """
+
+        try:
+            cur_commit = git_utils.current_commit(self.base_folder)
+            return cur_commit
+        except RuntimeError:
+            raise NoVersionAvailable(f"ingredients in {str(self.ingredients_folder)!r}")
 
     # -------------------------- Shelf
 

@@ -183,3 +183,13 @@ class InvalidEpochValue(Exception):
 class DuplicateFigureError(Exception):
     def __init__(self, fig_identifier: str):
         super().__init__(f"Duplicate figure identifier: {fig_identifier}")
+
+
+class NoVersionAvailable(Exception):
+    def __init__(self, what: str):
+        super().__init__(f"No version available for: {what}")
+
+
+class VersioningInconsistencyError(Exception):
+    def __init__(self):
+        super().__init__("Cannot guarentee versioning consistency")

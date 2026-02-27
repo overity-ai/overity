@@ -28,6 +28,8 @@ from overity.model.inference_agent.package import InferenceAgentPackageInfo
 from overity.model.dataset.metadata import DatasetMetadata
 from overity.model.dataset.package import DatasetPackageInfo
 
+from overity.model.versioning import VersioningStatus
+
 from pathlib import Path
 
 # Type alias for hashlib hash objects
@@ -52,6 +54,14 @@ class StorageBackend(ABC):
     @abstractmethod
     def benches(self):
         """Get list of bench definitions"""
+
+    @abstractmethod
+    def catalyst_version_status(self) -> VersioningStatus:
+        """Get the current versioning status of catalyst"""
+
+    @abstractmethod
+    def catalyst_version_info(self) -> str:
+        """Get the current version information for catalyst"""
 
     # -------------------------- Ingredients
 
@@ -78,6 +88,14 @@ class StorageBackend(ABC):
     @abstractmethod
     def lib(self):
         """Get path to directory containing additional python modules"""
+
+    @abstractmethod
+    def ingredients_version_status(self) -> VersioningStatus:
+        """Get the current versioning status of ingredients"""
+
+    @abstractmethod
+    def ingredients_version_info(self) -> str:
+        """Get the current version information for ingredients"""
 
     # -------------------------- Shelf
 
