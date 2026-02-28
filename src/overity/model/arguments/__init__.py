@@ -52,3 +52,15 @@ class OptionSchema:
 class FlagSchema:
     name: str
     help: str
+
+
+@dataclass
+class List:
+    name: str
+    value: list[str]
+
+
+@dataclass(frozen=True)
+class ListSchema:
+    name: str
+    help: str

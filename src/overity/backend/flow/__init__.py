@@ -365,7 +365,6 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
         )
 
         if ingredients_version_info is not None:
-            # TODO: Catalyst versioning info
             ctx.report.traceability_graph.metadata_store(
                 k_bench, "commit", catalyst_version_info
             )
