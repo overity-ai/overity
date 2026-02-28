@@ -27,14 +27,11 @@ def parse_method_kind(x: str):
     elif x in {"measurement-qualification", "mq"}:
         return MethodKind.MeasurementQualification
 
-    elif x in {"deployment", "dp"}:
-        return MethodKind.Deployment
-
     elif x in {"analysis", "an"}:
         return MethodKind.Analysis
 
     else:
-        raise ArgumentError(x)
+        raise ArgumentError(None, f"Invalid method kind: {x}")
 
 
 def parse_report_kind(x: str):
@@ -50,4 +47,4 @@ def parse_report_kind(x: str):
         return MethodReportKind.Analysis
 
     else:
-        raise ArgumentError(x)
+        raise ArgumentError(None, f"Invalid report kind: {x}")

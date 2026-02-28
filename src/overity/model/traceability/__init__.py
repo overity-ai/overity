@@ -27,7 +27,6 @@ class ArtifactKind(Enum):
 
     # Ingredients
     AnalysisMethod = "analysis_method"
-    DeploymentMethod = "deployment_method"
     MeasurementQualificationMethod = "measurement_qualification_method"
     TrainingOptimizationMethod = "training_optimization_method"
     BenchAbstraction = "bench_abstraction"
@@ -46,6 +45,7 @@ class ArtifactKind(Enum):
     # Runs
     OptimizationRun = "optimization_run"
     ExecutionRun = "execution_run"
+    AnalysisRun = "analysis_run"
 
 
 class ArtifactLinkKind(Enum):

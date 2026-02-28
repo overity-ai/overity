@@ -310,6 +310,43 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
                 ingredients_version_info,
             )
 
+    elif ctx.method_kind == MethodKind.Analysis:
+        ctx.report.method_key = ArtifactKey(
+            kind=ArtifactKind.AnalysisMethod, id=ctx.method_slug
+        )
+        ctx.report.report_key = ArtifactKey(
+            kind=ArtifactKind.AnalysisReport, id=ctx.report.uuid
+        )
+        ctx.report.run_key = ArtifactKey(
+            kind=ArtifactKind.AnalysisRun, id=ctx.report.uuid
+        )
+
+        # Add link between run and report
+        ctx.report.traceability_graph.add(
+            ArtifactLink(
+                a=ctx.report.report_key,
+                b=ctx.report.run_key,
+                kind=ArtifactLinkKind.MethodUse,
+            )
+        )
+
+        # Add link between run and method
+        ctx.report.traceability_graph.add(
+            ArtifactLink(
+                a=ctx.report.run_key,
+                b=ctx.report.method_key,
+                kind=ArtifactLinkKind.MethodUse,
+            )
+        )
+
+        # Add versioning information for this method
+        if ingredients_version_info is not None:
+            ctx.report.traceability_graph.metadata_store(
+                ctx.report.method_key,
+                "commit",
+                ingredients_version_info,
+            )
+
     else:
         raise NotImplementedError
 
