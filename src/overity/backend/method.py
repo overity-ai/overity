@@ -45,6 +45,18 @@ def list_measurement_qualification_methods(program_path: Path | str):
     return methods, errors
 
 
+def list_analysis_methods(program_path: Path | str):
+    """List the current available comparative analysis methods from the given program path"""
+
+    program_path = Path(program_path).resolve()
+
+    log.info(f"List analysis methods from program in {program_path}")
+    st = LocalStorage(program_path)
+    methods, errors = st.analysis_methods()
+
+    return methods, errors
+
+
 def find_method_path(program_path: Path | str, kind: MethodKind, slug: str) -> Path:
     """Find the requested method script file"""
 

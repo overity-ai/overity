@@ -450,7 +450,44 @@ class LocalStorage(StorageBackend):
 
     def analysis_methods(self):
         """Get list of analysis methods registered in program"""
-        raise NotImplementedError
+
+        def process_file(x: Path):
+            try:
+                ext = x.suffix
+
+                if ext == ".py":
+                    return file_py.from_file(x, kind=MethodKind.Analysis)
+                elif ext == ".ipynb":
+                    return file_ipynb.from_file(x, kind=MethodKind.Analysis)
+
+            except Exception as exc:
+                return (x, exc)
+
+        # Process files
+        py_files = self.analysis_folder.glob("*.py")
+        ipynb_files = self.analysis_folder.glob("*.ipynb")
+        processed = list(map(process_file, itertools.chain(py_files, ipynb_files)))
+
+        # Isolate found methods and errors
+        found_methods = list(filter(lambda x: isinstance(x, MethodInfo), processed))
+        found_errors = list(filter(lambda x: isinstance(x, tuple), processed))
+
+        # Look for duplicates in found methods
+        mtd_dict = {}
+        for mtd in found_methods:
+            mtd_dict[mtd.slug] = (mtd_dict.get(mtd.slug) or []) + [mtd]
+
+        duplicates = {k: v for k, v in mtd_dict.items() if len(v) > 1}
+        for slug, mtds in duplicates.items():
+            for mtd in mtds:
+                found_errors.append(
+                    (
+                        mtd.path,
+                        DuplicateSlugError(mtd.path, slug),
+                    )
+                )
+
+        return found_methods, found_errors
 
     def experiments(self):
         """Get list of experiments definitions registered in program"""
