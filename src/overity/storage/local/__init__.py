@@ -659,6 +659,7 @@ class LocalStorage(StorageBackend):
         """Get list of execution reports in program"""
 
         def check_report(pp: Path):
+            """Check a found report file, True if is included, False if not or invalid report file"""
             try:
                 report_info = report_json.from_file(self._execution_report_path(pp))
 
@@ -671,6 +672,8 @@ class LocalStorage(StorageBackend):
                 log.info(f"Error processing report {pp}: {type(exc)}: {exc!s}")
                 log.debug(traceback.format_exc())
 
+                return False
+
         return tuple(
             filter(
                 check_report,
@@ -681,9 +684,29 @@ class LocalStorage(StorageBackend):
     def analysis_reports(self, include_all: bool = False):
         """Get list of analysis reports in program"""
 
-        # List of execution reports is implemented as a list of zip files with a uuid4 name
+        def check_report(pp: Path):
+            """Check a found report file, True if included, False if not or invalid report file"""
 
-        raise NotImplementedError
+            try:
+                report_info = report_json.from_file(self._analysis_report_path(pp))
+
+                # If we are here, the file is a valid report file.
+                return include_all or (
+                    report_info.status == MethodExecutionStatus.ExecutionSuccess
+                )
+
+            except Exception as exc:
+                log.info(f"Error processing report {pp}: {type(exc)}: {exc!s}")
+                log.debug(traceback.format_exc())
+
+                return False
+
+        return tuple(
+            filter(
+                check_report,
+                map(lambda x: x.stem, self.analysis_reports_folder.glob("*.json")),
+            )
+        )
 
     def experiment_report_load(self, identifier: str):
         raise NotImplementedError
@@ -709,7 +732,14 @@ class LocalStorage(StorageBackend):
         return report_path, report_json.from_file(report_path)
 
     def analysis_report_load(self, identifier: str):
-        raise NotImplementedError
+        report_path = self._analysis_report_path(identifier)
+
+        if not report_path.is_file():
+            raise ReportNotFound(
+                self.base_folder, MethodReportKind.Analysis, identifier
+            )
+
+        return report_path, report_json.from_file(report_path)
 
     def experiment_report_remove(self, identifier: str):
         raise NotImplementedError

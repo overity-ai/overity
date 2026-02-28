@@ -381,7 +381,6 @@ def _generate_traceability_graph(graph: ArtifactGraph):
         # / shape /
         if nd.kind in {
             ArtifactKind.AnalysisMethod,
-            ArtifactKind.DeploymentMethod,
             ArtifactKind.MeasurementQualificationMethod,
             ArtifactKind.TrainingOptimizationMethod,
         }:
