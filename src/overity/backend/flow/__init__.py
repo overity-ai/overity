@@ -67,6 +67,8 @@ from overity.model.report.metrics import (
     PercentageValue,
 )
 
+from overity.model.report.table import Table
+
 from overity.model.versioning import VersioningStatus
 
 from overity.exchange import report_json
@@ -89,6 +91,7 @@ from contextlib import contextmanager
 from matplotlib.figure import Figure as MplFigure
 from plotly.graph_objects import Figure as PlotlyFigure
 import plotly.tools as pl_tools
+import pandas as pd
 
 log = logging.getLogger("backend.flow")
 
@@ -659,7 +662,6 @@ def dataset_use(ctx, slug: str):
 @_api_guard
 @contextmanager
 def dataset_package(ctx, slug: str, name: str, description: str | None = None):
-
     # TODO # Maybe not useful to create tmpdir for that thing here, as we may fetch data
     # from internet or directly use an existing folder on the PC. To check
 
@@ -718,7 +720,6 @@ def dataset_package(ctx, slug: str, name: str, description: str | None = None):
 
 # TODO Add checks for duplicates and value constraints (when constructing?)
 class MetricSaver:
-
     SECTION_LENGTH = 64
     VAR_NAME_LENGTH = 16
 
@@ -774,7 +775,7 @@ class MetricSaver:
                     )
                 elif isinstance(metric_value, PercentageValue):
                     output_str += (
-                        self._var(metric_key, f"{metric_value.value*100.0:.2f} %")
+                        self._var(metric_key, f"{metric_value.value * 100.0:.2f} %")
                         + "\n"
                     )
                 else:  # Fallback
@@ -874,3 +875,82 @@ def graph_save_plotly(ctx: FlowCtx, identifier: str, fig: PlotlyFigure):
 @_dmq_guard
 def bench_instance(ctx):
     return ctx.bench_instance
+
+
+####################################################
+# Tables API
+####################################################
+
+
+@_api_guard
+def table_save(ctx: FlowCtx, table: Table):
+    """Save a table to the report"""
+    log.info(f"-> Save table {table.identifier}")
+
+    if ctx.report.tables is None:
+        ctx.report.tables = {}
+
+    if table.identifier in ctx.report.tables:
+        raise ValueError(f"Table with identifier '{table.identifier}' already exists")
+
+    # Save into report
+    ctx.report.tables[table.identifier] = table
+
+
+@_api_guard
+def table_save_df(ctx: FlowCtx, identifier: str, df: pd.DataFrame, caption: str = ""):
+    """Save a pandas DataFrame as a table"""
+    log.info(f"-> Save table from DataFrame: {identifier}")
+
+    if ctx.report.tables is None:
+        ctx.report.tables = {}
+
+    if identifier in ctx.report.tables:
+        raise ValueError(f"Table with identifier '{identifier}' already exists")
+
+    # Create table from DataFrame
+    table = Table.from_df(df, identifier, caption)
+
+    # Save into report
+    ctx.report.tables[identifier] = table
+
+
+@_api_guard
+def table_save_dict(ctx: FlowCtx, identifier: str, data: list[dict], caption: str = ""):
+    """Save a list of dictionaries as a table"""
+    log.info(f"-> Save table from dict list: {identifier}")
+
+    if ctx.report.tables is None:
+        ctx.report.tables = {}
+
+    if identifier in ctx.report.tables:
+        raise ValueError(f"Table with identifier '{identifier}' already exists")
+
+    if not data:
+        # Handle empty data case
+        table = Table(
+            identifier=identifier, caption=caption, columns=tuple(), rows=tuple()
+        )
+    else:
+        # Get all unique column names from all dictionaries, preserving order of first appearance
+        seen = set()
+        columns = []
+        for row_dict in data:
+            for key in row_dict.keys():
+                if key not in seen:
+                    columns.append(key)
+                    seen.add(key)
+
+        columns = tuple(columns)
+
+        # Convert each dictionary to a row tuple, filling missing values with None
+        rows = tuple(
+            tuple(row_dict.get(col, None) for col in columns) for row_dict in data
+        )
+
+        table = Table(
+            identifier=identifier, caption=caption, columns=columns, rows=rows
+        )
+
+    # Save into report
+    ctx.report.tables[identifier] = table

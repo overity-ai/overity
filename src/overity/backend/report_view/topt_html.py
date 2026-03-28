@@ -36,6 +36,7 @@ from overity.model.report.metrics import (
     LinRangeValue,
     PercentageValue,
 )
+from overity.model.report.table import Table
 
 from plotly.graph_objects import Figure as PlotlyFigure
 
@@ -262,7 +263,52 @@ TEMPLATE_TXT = dedent(
                     <!-- -------------------------- -->
 
                     <div class="section-title">
-                        <h2>5. Graphs</h2>
+                        <h2>5. Tables</h2>
+                    </div>
+
+                    <div class="row">
+                        {% for table in tables %}
+                        <div class="col-xl-6 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Table: {{table.identifier}}</div>
+                                            {% if table.caption %}
+                                            <p class="text-muted small mb-2">{{table.caption}}</p>
+                                            {% endif %}
+                                            <div class="table-responsive">
+                                                <table class="table table-striped table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            {% for col in table.columns %}
+                                                            <th>{{col}}</th>
+                                                            {% endfor %}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for row in table.rows %}
+                                                        <tr>
+                                                            {% for cell in row %}
+                                                            <td>{{cell}}</td>
+                                                            {% endfor %}
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- -------------------------- -->
+
+                    <div class="section-title">
+                        <h2>6. Graphs</h2>
                     </div>
 
                     <div class="row">
@@ -288,7 +334,7 @@ TEMPLATE_TXT = dedent(
                     <!-- -------------------------- -->
 
                     <div class="section-title">
-                        <h2>6. Traceability</h2>
+                        <h2>7. Traceability</h2>
                     </div>
 
                     <div class="row">
@@ -306,7 +352,7 @@ TEMPLATE_TXT = dedent(
                     <!-- -------------------------- -->
 
                     <div class="section-title">
-                        <h2>7. Logs</h2>
+                        <h2>8. Logs</h2>
                     </div>
 
                     <div class="table-responsive">
@@ -458,12 +504,22 @@ def _process_metric(x: Metric):
     elif isinstance(x, LinRangeValue):
         return f"{x.value} ({x.low} / {x.high})"
     elif isinstance(x, PercentageValue):
-        return f"{x.value*100:.2f} %"
+        return f"{x.value * 100:.2f} %"
 
 
 def _process_graph(x: PlotlyFigure):
     graph_html = x.to_html(full_html=False, include_plotlyjs=False)
     return graph_html
+
+
+def _process_table(x: Table):
+    """Process a Table object for template rendering."""
+    return {
+        "identifier": x.identifier,
+        "caption": x.caption,
+        "columns": x.columns,
+        "rows": x.rows,
+    }
 
 
 _LOG_SEVERITY_CLASSES = {
@@ -529,6 +585,7 @@ def render(report_data: MethodReport, report_path: Path | None = None):
             {"identifier": k, "html": _process_graph(v)}
             for k, v in report_data.graphs.items()
         ],
+        "tables": [_process_table(v) for k, v in report_data.tables.items()],
     }
 
     return template.render(**template_in_data)

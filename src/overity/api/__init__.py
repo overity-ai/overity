@@ -24,6 +24,7 @@ from overity.backend.flow.ctx import FlowCtx, RunMode
 
 from matplotlib.figure import Figure as MplFigure
 from plotly.graph_objects import Figure as PlotlyFigure
+import pandas as pd
 
 
 # Initialize global flow object
@@ -114,6 +115,33 @@ def graph_save_mpl(identifier: str, fig: MplFigure):
 
 def graph_save_plotly(identifier: str, fig: PlotlyFigure):
     return flow.graph_save_plotly(_CTX, identifier, fig)
+
+
+####################################################
+# Tables API
+####################################################
+
+
+def table_save_df(identifier: str, df: pd.DataFrame, caption: str = ""):
+    """Save a pandas DataFrame as a table in the report.
+
+    Args:
+        identifier: Unique identifier for the table
+        df: pandas DataFrame to save
+        caption: Optional description/caption for the table
+    """
+    return flow.table_save_df(_CTX, identifier, df, caption)
+
+
+def table_save_dict(identifier: str, data: list[dict], caption: str = ""):
+    """Save a list of dictionaries as a table in the report.
+
+    Args:
+        identifier: Unique identifier for the table
+        data: List of dictionaries where each dict represents a row
+        caption: Optional description/caption for the table
+    """
+    return flow.table_save_dict(_CTX, identifier, data, caption)
 
 
 ####################################################
