@@ -17,21 +17,25 @@ from overity.model.arguments import (
     ArgumentSchema,
     OptionSchema,
     FlagSchema,
+    ListSchema,
 )
 from overity.backend.flow.ctx import FlowCtx, RunMode
 
 from overity.errors import DuplicateArgumentNameError
 
 from argparse import ArgumentParser as CmdArgs
+from typing import Dict, Any
 
 
 class ArgumentParser:
     def __init__(self, ctx: FlowCtx):
         self.ctx = ctx
 
-        self.schema = {}
+        self.schema: Dict[
+            str, ArgumentSchema | OptionSchema | FlagSchema | ListSchema
+        ] = {}
 
-        self.parsed_args = {}  # Parsed arguments values are stored here
+        self.parsed_vars: Dict[str, Any] = {}  # Parsed arguments values are stored here
 
     def add_argument(self, name: str, help: str):
         if name in self.schema:
@@ -48,8 +52,10 @@ class ArgumentParser:
             raise DuplicateArgumentNameError(name)
         self.schema[name] = FlagSchema(name=name, help=help)
 
-    def _escape_name(self, x: str):
-        return x.upper().replace("-", "_").replace(".", "_")
+    def add_list(self, name: str, help: str):
+        if name in self.schema:
+            raise DuplicateArgumentNameError(name)
+        self.schema[name] = ListSchema(name=name, help=help)
 
     def _parse_args_standalone(self):
         """Parse arguments in standalone running mode using ArgumentParser from argparse"""
@@ -68,6 +74,8 @@ class ArgumentParser:
                 parser.add_argument(
                     f"--{item.name}", action="store_true", help=item.help
                 )
+            elif isinstance(item, ListSchema):
+                parser.add_argument(f"--{item.name}", nargs="+", help=item.help)
 
         # Parse arguments
         args = parser.parse_args()
@@ -92,7 +100,14 @@ class ArgumentParser:
             elif isinstance(item, FlagSchema):
                 # By default all flags disabled
                 # TODO: Process differently?
-                self.parsed_vars[item.Name] = False
+                self.parsed_vars[item.name] = False
+            elif isinstance(item, ListSchema):
+                # For list arguments, prompt user for multiple values
+                values_input = input(
+                    f"Please provide values for list argument: {item.name} (space-separated): "
+                )
+                # Split by whitespace and filter out empty strings
+                self.parsed_vars[item.name] = [v for v in values_input.split() if v]
 
     def parse_args(self):
         if self.ctx.run_mode == RunMode.Standalone:

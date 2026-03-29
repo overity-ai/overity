@@ -55,6 +55,8 @@ def run(args: Namespace):
             methods, errors = b_method.list_topt_methods(pdir)
         elif args.kind == MethodKind.MeasurementQualification:
             methods, errors = b_method.list_measurement_qualification_methods(pdir)
+        elif args.kind == MethodKind.Analysis:
+            methods, errors = b_method.list_analysis_methods(pdir)
         else:
             log.error(f"Unimplemented kind list: {args.kind}")
             sys.exit(1)

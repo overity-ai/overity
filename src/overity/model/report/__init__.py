@@ -23,6 +23,7 @@ from overity.model.general_info.method import MethodInfo
 from overity.model.report.metrics import (
     Metric,
 )
+from overity.model.report.table import Table
 
 from typing import TYPE_CHECKING
 from pandas import DataFrame
@@ -91,6 +92,7 @@ class MethodReport:
     metrics: dict[str, Metric] | None = None
     epoch_metrics: dict[int, dict[str, Metric]] | None = None
     graphs: dict[str, Figure] | None = None
+    tables: dict[str, Table] | None = None
 
     @classmethod
     def default(
@@ -118,6 +120,7 @@ class MethodReport:
             metrics={},
             epoch_metrics={},
             graphs={},
+            tables={},
         )
 
     def log_add(self, tstamp: dt, severity: str, source: str, message: str):

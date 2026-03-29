@@ -181,8 +181,6 @@ class LocalStorage(StorageBackend):
             return self._optimization_report_path(run_uuid)
         elif method_kind == MethodKind.MeasurementQualification:
             return self._execution_report_path(run_uuid)
-        elif method_kind == MethodKind.Deployment:
-            return self._execution_report_path(run_uuid)
         elif method_kind == MethodKind.Analysis:
             return self._analysis_report_path(run_uuid)
 
@@ -450,7 +448,44 @@ class LocalStorage(StorageBackend):
 
     def analysis_methods(self):
         """Get list of analysis methods registered in program"""
-        raise NotImplementedError
+
+        def process_file(x: Path):
+            try:
+                ext = x.suffix
+
+                if ext == ".py":
+                    return file_py.from_file(x, kind=MethodKind.Analysis)
+                elif ext == ".ipynb":
+                    return file_ipynb.from_file(x, kind=MethodKind.Analysis)
+
+            except Exception as exc:
+                return (x, exc)
+
+        # Process files
+        py_files = self.analysis_folder.glob("*.py")
+        ipynb_files = self.analysis_folder.glob("*.ipynb")
+        processed = list(map(process_file, itertools.chain(py_files, ipynb_files)))
+
+        # Isolate found methods and errors
+        found_methods = list(filter(lambda x: isinstance(x, MethodInfo), processed))
+        found_errors = list(filter(lambda x: isinstance(x, tuple), processed))
+
+        # Look for duplicates in found methods
+        mtd_dict = {}
+        for mtd in found_methods:
+            mtd_dict[mtd.slug] = (mtd_dict.get(mtd.slug) or []) + [mtd]
+
+        duplicates = {k: v for k, v in mtd_dict.items() if len(v) > 1}
+        for slug, mtds in duplicates.items():
+            for mtd in mtds:
+                found_errors.append(
+                    (
+                        mtd.path,
+                        DuplicateSlugError(mtd.path, slug),
+                    )
+                )
+
+        return found_methods, found_errors
 
     def experiments(self):
         """Get list of experiments definitions registered in program"""
@@ -463,8 +498,6 @@ class LocalStorage(StorageBackend):
             return MethodKind.TrainingOptimization
         elif pp.is_relative_to(self.measurement_qualification_folder):
             return MethodKind.MeasurementQualification
-        elif pp.is_relative_to(self.deployment_folder):
-            return MethodKind.Deployment
         elif pp.is_relative_to(self.analysis_folder):
             return MethodKind.Analysis
         else:
@@ -626,6 +659,7 @@ class LocalStorage(StorageBackend):
         """Get list of execution reports in program"""
 
         def check_report(pp: Path):
+            """Check a found report file, True if is included, False if not or invalid report file"""
             try:
                 report_info = report_json.from_file(self._execution_report_path(pp))
 
@@ -638,6 +672,8 @@ class LocalStorage(StorageBackend):
                 log.info(f"Error processing report {pp}: {type(exc)}: {exc!s}")
                 log.debug(traceback.format_exc())
 
+                return False
+
         return tuple(
             filter(
                 check_report,
@@ -648,9 +684,29 @@ class LocalStorage(StorageBackend):
     def analysis_reports(self, include_all: bool = False):
         """Get list of analysis reports in program"""
 
-        # List of execution reports is implemented as a list of zip files with a uuid4 name
+        def check_report(pp: Path):
+            """Check a found report file, True if included, False if not or invalid report file"""
 
-        raise NotImplementedError
+            try:
+                report_info = report_json.from_file(self._analysis_report_path(pp))
+
+                # If we are here, the file is a valid report file.
+                return include_all or (
+                    report_info.status == MethodExecutionStatus.ExecutionSuccess
+                )
+
+            except Exception as exc:
+                log.info(f"Error processing report {pp}: {type(exc)}: {exc!s}")
+                log.debug(traceback.format_exc())
+
+                return False
+
+        return tuple(
+            filter(
+                check_report,
+                map(lambda x: x.stem, self.analysis_reports_folder.glob("*.json")),
+            )
+        )
 
     def experiment_report_load(self, identifier: str):
         raise NotImplementedError
@@ -676,7 +732,14 @@ class LocalStorage(StorageBackend):
         return report_path, report_json.from_file(report_path)
 
     def analysis_report_load(self, identifier: str):
-        raise NotImplementedError
+        report_path = self._analysis_report_path(identifier)
+
+        if not report_path.is_file():
+            raise ReportNotFound(
+                self.base_folder, MethodReportKind.Analysis, identifier
+            )
+
+        return report_path, report_json.from_file(report_path)
 
     def experiment_report_remove(self, identifier: str):
         raise NotImplementedError

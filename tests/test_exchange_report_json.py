@@ -15,6 +15,7 @@ from overity.model.report import (
     MethodExecutionStage,
     MethodReportLogItem,
 )
+from overity.model.report.table import Table
 from overity.model.general_info.method import MethodKind, MethodAuthor, MethodInfo
 from overity.model.traceability import (
     ArtifactKey,
@@ -121,6 +122,32 @@ class TestReportJson:
 
             graphs = {"accuracy_plot": fig1, "loss_plot": fig2}
 
+        # Create sample tables
+        tables = {
+            "results": Table(
+                identifier="results_table",
+                caption="Training Results",
+                columns=("epoch", "accuracy", "loss"),
+                rows=((1, 0.8, 0.2), (2, 0.85, 0.15), (3, 0.9, 0.1)),
+            ),
+            "config": Table(
+                identifier="config_table",
+                caption="Training Configuration",
+                columns=("parameter", "value"),
+                rows=(("learning_rate", 0.001), ("batch_size", 32), ("epochs", 100)),
+            ),
+            "performance": Table(
+                identifier="performance_metrics",
+                caption="Model Performance",
+                columns=("metric", "score", "unit"),
+                rows=(
+                    ("accuracy", 0.95, "percentage"),
+                    ("f1_score", 0.93, "unit"),
+                    ("inference_time", 0.05, "seconds"),
+                ),
+            ),
+        }
+
         original_report = MethodReport(
             uuid="test-uuid-123",
             program="test-program",
@@ -137,6 +164,7 @@ class TestReportJson:
             epoch_metrics=epoch_metrics,
             outputs=None,
             graphs=graphs,
+            tables=tables,
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -257,6 +285,45 @@ class TestReportJson:
             else:
                 # When plotly is not available, graphs should be empty dict
                 assert result.graphs == {}
+
+            # Tables
+            assert result.tables is not None
+            assert len(result.tables) == len(tables)
+            assert "results" in result.tables
+            assert "config" in result.tables
+            assert "performance" in result.tables
+
+            # Verify the tables are preserved
+            assert isinstance(result.tables["results"], Table)
+            assert isinstance(result.tables["config"], Table)
+            assert isinstance(result.tables["performance"], Table)
+
+            # Verify table data is preserved
+            results_table = result.tables["results"]
+            assert results_table.identifier == "results_table"
+            assert results_table.caption == "Training Results"
+            assert results_table.columns == ("epoch", "accuracy", "loss")
+            assert results_table.rows == ((1, 0.8, 0.2), (2, 0.85, 0.15), (3, 0.9, 0.1))
+
+            config_table = result.tables["config"]
+            assert config_table.identifier == "config_table"
+            assert config_table.caption == "Training Configuration"
+            assert config_table.columns == ("parameter", "value")
+            assert config_table.rows == (
+                ("learning_rate", 0.001),
+                ("batch_size", 32),
+                ("epochs", 100),
+            )
+
+            performance_table = result.tables["performance"]
+            assert performance_table.identifier == "performance_metrics"
+            assert performance_table.caption == "Model Performance"
+            assert performance_table.columns == ("metric", "score", "unit")
+            assert performance_table.rows == (
+                ("accuracy", 0.95, "percentage"),
+                ("f1_score", 0.93, "unit"),
+                ("inference_time", 0.05, "seconds"),
+            )
 
         finally:
             temp_path.unlink()
@@ -529,6 +596,343 @@ class TestReportJson:
                         assert list(result_trace.x) == list(original_trace.x)
                     if hasattr(original_trace, "y") and original_trace.y is not None:
                         assert list(result_trace.y) == list(original_trace.y)
+
+        finally:
+            temp_path.unlink()
+
+    def test_tables_encoding_decoding(self):
+        """Test that tables are properly encoded and decoded."""
+        # Create test data with various table types
+        method_info = MethodInfo(
+            slug="table-test-method",
+            kind=MethodKind.TrainingOptimization,
+            display_name="Table Test Method",
+            authors=[MethodAuthor(name="Test Author", email="test@example.com")],
+            metadata={},
+            description="A test method for tables",
+            path=Path("/path/to/method"),
+        )
+
+        # Create various types of tables with different data
+        test_tables = {
+            "simple_results": Table(
+                identifier="simple_results",
+                caption="Simple Results",
+                columns=("epoch", "accuracy", "loss"),
+                rows=((1, 0.8, 0.2), (2, 0.85, 0.15), (3, 0.9, 0.1)),
+            ),
+            "config_params": Table(
+                identifier="config_params",
+                caption="Configuration Parameters",
+                columns=("parameter", "value", "description"),
+                rows=(
+                    ("learning_rate", 0.001, "Initial learning rate"),
+                    ("batch_size", 32, "Training batch size"),
+                    ("epochs", 100, "Number of training epochs"),
+                    ("dropout", 0.2, "Dropout rate for regularization"),
+                ),
+            ),
+            "mixed_types": Table(
+                identifier="mixed_types",
+                caption="Mixed Data Types",
+                columns=("string_col", "int_col", "float_col", "bool_col"),
+                rows=(
+                    ("hello", 42, 3.14, True),
+                    ("world", 100, 2.718, False),
+                    ("test", 0, 1.414, True),
+                ),
+            ),
+            "single_row": Table(
+                identifier="single_row",
+                caption="Single Row Table",
+                columns=("metric", "value"),
+                rows=(("final_accuracy", 0.95),),
+            ),
+            "single_column": Table(
+                identifier="single_column",
+                caption="Single Column Table",
+                columns=("feature",),
+                rows=(("accuracy",), ("precision",), ("recall",), ("f1_score",)),
+            ),
+            "empty_rows": Table(
+                identifier="empty_rows",
+                caption="Table with Empty Rows",
+                columns=("col1", "col2", "col3"),
+                rows=(),
+            ),
+            "with_none_values": Table(
+                identifier="with_none_values",
+                caption="Table with None Values",
+                columns=("param", "value", "notes"),
+                rows=(
+                    ("learning_rate", 0.01, None),
+                    ("batch_size", 64, "Increased from 32"),
+                    ("optimizer", None, "Using default Adam"),
+                    ("dropout", 0.1, None),
+                ),
+            ),
+        }
+
+        original_report = MethodReport(
+            uuid="table-test-uuid",
+            program="table-test-program",
+            date_started=dt(2023, 1, 1, 10, 0, 0),
+            date_ended=dt(2023, 1, 1, 11, 0, 0),
+            stage=MethodExecutionStage.Preview,
+            status=MethodExecutionStatus.ExecutionSuccess,
+            environment={},
+            context={},
+            method_info=method_info,
+            traceability_graph=ArtifactGraph.default(),
+            logs=[],
+            metrics={},
+            epoch_metrics={},
+            outputs=None,
+            graphs={},
+            tables=test_tables,
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            # Encode to file
+            to_file(original_report, temp_path)
+
+            # Decode from file
+            result = from_file(temp_path)
+
+            # Verify tables are preserved
+            assert result.tables is not None
+            assert len(result.tables) == len(test_tables)
+
+            # Verify each table type
+            for table_name, original_table in test_tables.items():
+                assert table_name in result.tables
+                result_table = result.tables[table_name]
+
+                # Verify it's a Table object
+                assert isinstance(result_table, Table)
+
+                # Verify table properties are preserved
+                assert result_table.identifier == original_table.identifier
+                assert result_table.caption == original_table.caption
+                assert result_table.columns == original_table.columns
+                assert result_table.rows == original_table.rows
+
+                # Verify data integrity
+                assert len(result_table.rows) == len(original_table.rows)
+                for i, original_row in enumerate(original_table.rows):
+                    result_row = result_table.rows[i]
+                    assert len(result_row) == len(original_row)
+                    for j, original_value in enumerate(original_row):
+                        result_value = result_row[j]
+                        assert result_value == original_value
+
+        finally:
+            temp_path.unlink()
+
+    def test_empty_tables_round_trip(self):
+        """Test that empty tables dictionary is properly handled."""
+        method_info = MethodInfo(
+            slug="empty-tables-method",
+            kind=MethodKind.TrainingOptimization,
+            display_name="Empty Tables Method",
+            authors=[MethodAuthor(name="Test Author", email="test@example.com")],
+            metadata={},
+            description="A test method for empty tables",
+            path=Path("/path/to/method"),
+        )
+
+        original_report = MethodReport(
+            uuid="empty-tables-uuid",
+            program="empty-tables-program",
+            date_started=dt(2023, 1, 1, 10, 0, 0),
+            date_ended=dt(2023, 1, 1, 11, 0, 0),
+            stage=MethodExecutionStage.Preview,
+            status=MethodExecutionStatus.ExecutionSuccess,
+            environment={},
+            context={},
+            method_info=method_info,
+            traceability_graph=ArtifactGraph.default(),
+            logs=[],
+            metrics={},
+            epoch_metrics={},
+            outputs=None,
+            graphs={},
+            tables={},  # Empty tables dictionary
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            # Encode to file
+            to_file(original_report, temp_path)
+
+            # Decode from file
+            result = from_file(temp_path)
+
+            # Verify empty tables are preserved
+            assert result.tables is not None
+            assert isinstance(result.tables, dict)
+            assert len(result.tables) == 0
+
+        finally:
+            temp_path.unlink()
+
+    def test_none_tables_round_trip(self):
+        """Test that None tables field is properly handled (converted to empty dict)."""
+        method_info = MethodInfo(
+            slug="none-tables-method",
+            kind=MethodKind.TrainingOptimization,
+            display_name="None Tables Method",
+            authors=[MethodAuthor(name="Test Author", email="test@example.com")],
+            metadata={},
+            description="A test method for None tables",
+            path=Path("/path/to/method"),
+        )
+
+        original_report = MethodReport(
+            uuid="none-tables-uuid",
+            program="none-tables-program",
+            date_started=dt(2023, 1, 1, 10, 0, 0),
+            date_ended=dt(2023, 1, 1, 11, 0, 0),
+            stage=MethodExecutionStage.Preview,
+            status=MethodExecutionStatus.ExecutionSuccess,
+            environment={},
+            context={},
+            method_info=method_info,
+            traceability_graph=ArtifactGraph.default(),
+            logs=[],
+            metrics={},
+            epoch_metrics={},
+            outputs=None,
+            graphs={},
+            tables=None,  # None tables field
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            # Encode to file
+            to_file(original_report, temp_path)
+
+            # Decode from file
+            result = from_file(temp_path)
+
+            # Verify None tables are converted to empty dict (consistent with other fields)
+            assert result.tables is not None
+            assert isinstance(result.tables, dict)
+            assert len(result.tables) == 0
+
+        finally:
+            temp_path.unlink()
+
+    def test_tables_with_special_characters(self):
+        """Test tables with special characters and unicode."""
+        method_info = MethodInfo(
+            slug="special-chars-method",
+            kind=MethodKind.TrainingOptimization,
+            display_name="Special Characters Method",
+            authors=[MethodAuthor(name="Test Author", email="test@example.com")],
+            metadata={},
+            description="A test method for special characters",
+            path=Path("/path/to/method"),
+        )
+
+        # Create tables with special characters
+        special_tables = {
+            "unicode_table": Table(
+                identifier="unicode_table",
+                caption="Unicode Characters: αβγ δεζ",
+                columns=("greek_letters", "symbols", "descriptions"),
+                rows=(
+                    ("α", "alpha", "First Greek letter"),
+                    ("β", "beta", "Second Greek letter"),
+                    ("γ", "gamma", "Third Greek letter"),
+                    ("π", "pi", "Mathematical constant"),
+                ),
+            ),
+            "special_chars": Table(
+                identifier="special_chars",
+                caption="Special Characters & Symbols",
+                columns=("symbol", "name", "description"),
+                rows=(
+                    ("&", "ampersand", "And symbol"),
+                    ("<", "less_than", "Less than symbol"),
+                    (">", "greater_than", "Greater than symbol"),
+                    ("'", "apostrophe", "Single quote"),
+                    ('"', "quote", "Double quote"),
+                    ("\\n", "newline", "Line break"),
+                    ("\\t", "tab", "Tab character"),
+                ),
+            ),
+            "long_strings": Table(
+                identifier="long_strings",
+                caption="Long String Values",
+                columns=("key", "long_value"),
+                rows=(
+                    (
+                        "description",
+                        "This is a very long description that contains multiple words and should be preserved exactly as written in the table serialization process.",
+                    ),
+                    (
+                        "formula",
+                        "E = mc² is the famous equation from Einstein's theory of relativity.",
+                    ),
+                    (
+                        "path",
+                        "/home/user/projects/machine-learning/models/very/long/path/structure/example.py",
+                    ),
+                ),
+            ),
+        }
+
+        original_report = MethodReport(
+            uuid="special-chars-uuid",
+            program="special-chars-program",
+            date_started=dt(2023, 1, 1, 10, 0, 0),
+            date_ended=dt(2023, 1, 1, 11, 0, 0),
+            stage=MethodExecutionStage.Preview,
+            status=MethodExecutionStatus.ExecutionSuccess,
+            environment={},
+            context={},
+            method_info=method_info,
+            traceability_graph=ArtifactGraph.default(),
+            logs=[],
+            metrics={},
+            epoch_metrics={},
+            outputs=None,
+            graphs={},
+            tables=special_tables,
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            # Encode to file
+            to_file(original_report, temp_path)
+
+            # Decode from file
+            result = from_file(temp_path)
+
+            # Verify special character tables are preserved
+            assert result.tables is not None
+            assert len(result.tables) == len(special_tables)
+
+            # Verify each table with special characters
+            for table_name, original_table in special_tables.items():
+                assert table_name in result.tables
+                result_table = result.tables[table_name]
+
+                assert isinstance(result_table, Table)
+                assert result_table.identifier == original_table.identifier
+                assert result_table.caption == original_table.caption
+                assert result_table.columns == original_table.columns
+                assert result_table.rows == original_table.rows
 
         finally:
             temp_path.unlink()

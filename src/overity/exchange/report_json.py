@@ -37,6 +37,7 @@ from overity.model.traceability import (
     ArtifactKind,
 )
 from overity.model.report.metrics import Metric, from_data as metrics_from_data
+from overity.model.report.table import Table
 from datetime import datetime as dt
 
 
@@ -135,6 +136,21 @@ def _encode_graphs(graphs: dict[str, plotly.graph_objects.Figure]) -> dict[str, 
     }
 
 
+def _encode_table(table: Table) -> dict[str, Any]:
+    return {
+        "identifier": table.identifier,
+        "caption": table.caption,
+        "columns": table.columns,
+        "rows": table.rows,
+    }
+
+
+def _encode_tables(tables: dict[str, Table]) -> dict[str, dict[str, Any]]:
+    return {
+        table_id: _encode_table(table_data) for table_id, table_data in tables.items()
+    }
+
+
 def to_file(report: MethodReport, path: Path):
     output_obj = {
         "uuid": report.uuid,
@@ -151,6 +167,7 @@ def to_file(report: MethodReport, path: Path):
         "metrics": _encode_metrics(report.metrics or {}),
         "epoch_metrics": _encode_epoch_metrics(report.epoch_metrics or {}),
         "graphs": _encode_graphs(report.graphs or {}),
+        "tables": _encode_tables(report.tables or {}),
         # outputs TODO #
     }
 
@@ -240,6 +257,19 @@ def _parse_graphs(data: dict[str, str]):
     return {graph_id: _parse_graph(graph_data) for graph_id, graph_data in data.items()}
 
 
+def _parse_table(data: dict[str, Any]) -> Table:
+    return Table(
+        identifier=data["identifier"],
+        caption=data["caption"],
+        columns=tuple(str(col) for col in data["columns"]),
+        rows=tuple(tuple(row) for row in data["rows"]),
+    )
+
+
+def _parse_tables(data: dict[str, dict[str, Any]]) -> dict[str, Table]:
+    return {table_id: _parse_table(table_data) for table_id, table_data in data.items()}
+
+
 def from_file(path: Path):
     path = Path(path)
 
@@ -262,6 +292,7 @@ def from_file(path: Path):
         metrics=_parse_metrics(data["metrics"]),
         epoch_metrics=_parse_epoch_metrics(data["epoch_metrics"]),
         graphs=_parse_graphs(data.get("graphs", {})),
+        tables=_parse_tables(data.get("tables", {})),
         outputs=None,  # TODO: Parse outputs
     )
 

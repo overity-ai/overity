@@ -50,7 +50,7 @@ def setup_parser(parser: ArgumentParser):
     subcommand.add_argument(
         "method_kind",
         type=types.parse_method_kind,
-        help="Method kind: training-optimization (to), measurement-qualification (mq), deployment (dp), or analysis (an)",
+        help="Method kind: training-optimization (to), measurement-qualification (mq), or analysis (an)",
     )
 
     # Add method slug argument

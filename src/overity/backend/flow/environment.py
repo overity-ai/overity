@@ -36,11 +36,12 @@ def platform_info():
 
 def installed_packages():
     """List installed packages in current environment using pip freeze"""
-    import pkg_resources
+    return []
 
-    installed_packages = pkg_resources.working_set
+    from importlib.metadata import distributions
+
     installed_packages_list = sorted(
-        ["%s==%s" % (i.key, i.version) for i in installed_packages]
+        ["%s==%s" % (i.metadata["Name"], i.version) for i in distributions()]
     )
 
     return installed_packages_list
