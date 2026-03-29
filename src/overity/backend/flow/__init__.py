@@ -35,6 +35,7 @@ from overity.model.report import (
     MethodExecutionStatus,
     MethodExecutionStage,
     MethodReport,
+    MethodReportKind,
 )
 
 from overity.model.ml_model.metadata import (
@@ -954,3 +955,40 @@ def table_save_dict(ctx: FlowCtx, identifier: str, data: list[dict], caption: st
 
     # Save into report
     ctx.report.tables[identifier] = table
+
+
+####################################################
+# Report Retrieval API
+####################################################
+
+
+def _report_kind_to_artifact_kind(kind: MethodReportKind) -> ArtifactKind:
+    """Convert MethodReportKind to corresponding ArtifactKind for traceability"""
+    mapping = {
+        MethodReportKind.Experiment: ArtifactKind.ExperimentRun,
+        MethodReportKind.TrainingOptimization: ArtifactKind.OptimizationReport,
+        MethodReportKind.Execution: ArtifactKind.ExecutionReport,
+        MethodReportKind.Analysis: ArtifactKind.AnalysisReport,
+    }
+    return mapping[kind]
+
+
+@_api_guard
+def report_get(ctx: FlowCtx, kind: MethodReportKind, uuid: str):
+    """Get a report by kind and UUID, with traceability tracking"""
+    log.info(f"-> Get {kind.value} report: {uuid}")
+
+    # Use existing storage backend to load report - let storage exceptions bubble up
+    report = ctx.storage.report_load(kind, uuid)
+
+    # Update traceability graph to show this access
+    report_key = ArtifactKey(kind=_report_kind_to_artifact_kind(kind), id=uuid)
+
+    # Add link showing this run used the report
+    ctx.report.traceability_graph.add(
+        ArtifactLink(
+            a=ctx.report.run_key, b=report_key, kind=ArtifactLinkKind.ReportUse
+        )
+    )
+
+    return report

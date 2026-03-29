@@ -81,6 +81,9 @@ class ArtifactLinkKind(Enum):
     """Links a run to a bench"""
     BenchUse = "bench_use"
 
+    """Links a run to a report it used"""
+    ReportUse = "report_use"
+
 
 @dataclass(frozen=True, eq=True)
 class ArtifactKey:
