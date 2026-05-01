@@ -273,6 +273,7 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
         program=ctx.pinfo.slug,
         method_info=ctx.method_info,
         date_started=date_started,
+        stage=ctx.stage,
     )
 
     ctx.report.environment = {

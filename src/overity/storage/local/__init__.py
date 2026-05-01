@@ -630,85 +630,59 @@ class LocalStorage(StorageBackend):
 
     # -------------------------- Shelf
 
-    def experiment_runs(self, include_all: bool = False):
+    def experiment_runs(self):
         """Get list of experiment runs reports in program"""
         raise NotImplementedError
 
-    def optimization_reports(self, include_all: bool = False):
+    def optimization_reports(self):
         """Get list of identifiers for optimization reports in program"""
 
-        def check_report(pp: Path):
-            try:
-                report_info = report_json.from_file(self._optimization_report_path(pp))
-
-                # If we are here, the file is a valid report file.
-                return include_all or (
-                    report_info.status == MethodExecutionStatus.ExecutionSuccess
-                )
-
-            except Exception as exc:
-                log.info(f"Error processing report {pp}: {type(exc)}: {exc!s}")
-                log.debug(traceback.format_exc())
-
         return tuple(
-            filter(
-                check_report,
-                map(lambda x: x.stem, self.optimization_reports_folder.glob("*.json")),
-            )
+            map(lambda x: x.stem, self.optimization_reports_folder.glob("*.json"))
         )
 
-    def execution_reports(self, include_all: bool = False):
+    def execution_reports(self):
         """Get list of execution reports in program"""
 
-        def check_report(pp: Path):
-            """Check a found report file, True if is included, False if not or invalid report file"""
-            try:
-                report_info = report_json.from_file(self._execution_report_path(pp))
-
-                # If we are here, the file is a valid report file.
-                return include_all or (
-                    report_info.status == MethodExecutionStatus.ExecutionSuccess
-                )
-
-            except Exception as exc:
-                log.info(f"Error processing report {pp}: {type(exc)}: {exc!s}")
-                log.debug(traceback.format_exc())
-
-                return False
-
         return tuple(
-            filter(
-                check_report,
-                map(lambda x: x.stem, self.execution_reports_folder.glob("*.json")),
-            )
+            map(lambda x: x.stem, self.execution_reports_folder.glob("*.json")),
         )
 
     def analysis_reports(self, include_all: bool = False):
-        """Get list of analysis reports in program"""
+        """Get list of analysis reports in program
 
-        def check_report(pp: Path):
-            """Check a found report file, True if included, False if not or invalid report file"""
+        Args:
+            include_all: If True, return all reports regardless of status.
+                        If False (default), only return reports with ExecutionSuccess status.
 
+        Returns:
+            Tuple of report identifiers, filtered by status if include_all=False
+        """
+        import logging
+
+        log = logging.getLogger("LocalStorage.analysis_reports")
+
+        report_files = list(self.analysis_reports_folder.glob("*.json"))
+        valid_reports = []
+
+        for report_file in report_files:
             try:
-                report_info = report_json.from_file(self._analysis_report_path(pp))
+                # Load the report to check its status
+                report = report_json.from_file(report_file)
 
-                # If we are here, the file is a valid report file.
-                return include_all or (
-                    report_info.status == MethodExecutionStatus.ExecutionSuccess
-                )
+                # If include_all is False, only include successful reports
+                if not include_all:
+                    if report.status != MethodExecutionStatus.ExecutionSuccess:
+                        continue
+
+                valid_reports.append(report_file.stem)
 
             except Exception as exc:
-                log.info(f"Error processing report {pp}: {type(exc)}: {exc!s}")
-                log.debug(traceback.format_exc())
+                # Log the error but continue processing other files
+                log.info(f"Error loading report {report_file}: {exc!s}")
+                continue
 
-                return False
-
-        return tuple(
-            filter(
-                check_report,
-                map(lambda x: x.stem, self.analysis_reports_folder.glob("*.json")),
-            )
-        )
+        return tuple(valid_reports)
 
     def experiment_report_load(self, identifier: str):
         raise NotImplementedError

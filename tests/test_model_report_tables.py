@@ -157,8 +157,9 @@ class TestMethodReportTables:
         report_default = MethodReport.default(
             uuid="test-default-uuid",
             program="test-default-program",
-            date_started=dt(2023, 1, 1, 10, 0, 0),
+            stage=MethodExecutionStage.Preview,
             method_info=self.method_info,
+            date_started=dt(2023, 1, 1, 10, 0, 0),
         )
 
         # Verify that default() method initializes tables as empty dict
