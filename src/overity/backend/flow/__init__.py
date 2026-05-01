@@ -129,24 +129,6 @@ class LoggerWriter:
         pass
 
 
-# @dataclass
-# class ModelPackageInfo:
-#    """Metadata of the saved model"""
-#    metadata: MLModelMetadata
-#
-#    """Path to store the model file"""
-#    model_file: Path
-#
-#    """Temporary folder to save the attachments files"""
-#    attachments_dir: Path
-#
-#    """Temporary folder to save inference example"""
-#    inference_example_dir: Path
-#
-#    """List of attachment specifications"""
-#    attachments: tuple[Path, str | None]
-
-
 class ModelPackageBuilder:
     def __init__(
         self,
