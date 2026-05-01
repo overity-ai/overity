@@ -14,26 +14,16 @@ ML Model packaging tools
 import json
 import tarfile
 import tempfile
-import hashlib
 
 from pathlib import Path
 
 from overity.exchange.model_package_v1 import metadata as ml_metadata
+from overity.exchange import integrity
 
 from overity.model.ml_model.metadata import MLModelMetadata
 from overity.model.ml_model.package import MLModelPackage
 
 from overity.errors import MalformedModelPackage
-
-
-# TODO # Merge with one used in inference agent package
-def package_sha256(path: Path):
-    path = Path(path)
-
-    with open(path, "rb") as fhandle:
-        digest = hashlib.file_digest(fhandle, "sha256")
-
-    return digest
 
 
 def package_archive_create(model_data: MLModelPackage, output_path: Path):
@@ -46,16 +36,24 @@ def package_archive_create(model_data: MLModelPackage, output_path: Path):
 
         # Create output archive
         with tarfile.open(output_path, "w:gz") as archive:
+            # Add model metadata
             archive.add(fhandle.name, arcname="model-metadata.json")
+
+            # Add model file
             archive.add(
                 model_data.model_file_path, arcname=model_data.metadata.model_file
             )
 
+            # Add attachments
+            for att in model_data.attachments_files:
+                archive.add(str(att), arcname=f"attachments/{att.name}")
+
+            # Add inference example folder
             if model_data.example_implementation_path is not None:
                 archive.add(model_data.example_implementation_path, "inference-example")
 
     # -> fhandle file is removed automatically when exiting the with... clause
-    return package_sha256(output_path)
+    return integrity.file_sha256(output_path)
 
 
 def _process_metadata(archive_path: Path, tf: tarfile.TarFile):

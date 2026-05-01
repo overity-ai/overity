@@ -193,3 +193,12 @@ class NoVersionAvailable(Exception):
 class VersioningInconsistencyError(Exception):
     def __init__(self):
         super().__init__("Cannot guarentee versioning consistency")
+
+
+class AttachmentIntegrityError(Exception):
+    def __init__(self, pp: Path, got_hash: str, expected_hash: str):
+        super().__init__(
+            "Attachment integrity error for {}: expected {}, got {}".format(
+                pp, expected_hash, got_hash
+            )
+        )

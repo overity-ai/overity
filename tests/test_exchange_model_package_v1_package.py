@@ -9,11 +9,11 @@ import json
 import os
 from pathlib import Path
 from overity.exchange.model_package_v1.package import (
-    package_sha256,
     package_archive_create,
     metadata_load,
     model_load,
 )
+from overity.exchange import integrity
 from overity.model.ml_model.metadata import (
     MLModelMetadata,
     MLModelAuthor,
@@ -24,7 +24,7 @@ from overity.errors import MalformedModelPackage
 
 
 class TestModelPackageV1Package:
-    def test_package_sha256(self):
+    def test_file_sha256(self):
         """Test computing SHA256 hash of a file."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(b"test content")
@@ -32,7 +32,7 @@ class TestModelPackageV1Package:
             path = Path(f.name)
 
         try:
-            result = package_sha256(path).hexdigest()
+            result = integrity.file_sha256(path).hexdigest()
             # Known SHA256 hash of "test content"
             assert (
                 result

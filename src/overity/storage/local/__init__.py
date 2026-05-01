@@ -66,6 +66,7 @@ from overity.errors import (
 from overity.exchange.model_package_v1 import package as ml_package
 from overity.exchange.inference_agent_package import package as agent_package
 from overity.exchange.dataset_package import package as dataset_package
+from overity.exchange import integrity
 
 
 log = logging.getLogger("Local storage")
@@ -867,7 +868,7 @@ class LocalStorage(StorageBackend):
         pkginfo = ml_package.model_load(fpath, target_folder)
 
         # Compute SHA256 of the archive file
-        sha256 = ml_package.package_sha256(fpath)
+        sha256 = integrity.file_sha256(fpath)
 
         return pkginfo, sha256
 
@@ -902,7 +903,7 @@ class LocalStorage(StorageBackend):
         pkginfo = agent_package.agent_load(fpath, target_folder)
 
         # Compute SHA256 of the archive file
-        sha256 = agent_package.package_sha256(fpath)
+        sha256 = integrity.file_sha256(fpath)
 
         return pkginfo, sha256
 
@@ -937,7 +938,7 @@ class LocalStorage(StorageBackend):
         pkginfo = dataset_package.dataset_load(fpath, target_folder)
 
         # Compute SHA256 of the archive file
-        sha256 = dataset_package.package_sha256(fpath)
+        sha256 = integrity.file_sha256(fpath)
 
         return pkginfo, sha256
 

@@ -8,11 +8,11 @@ import tarfile
 import json
 from pathlib import Path
 from overity.exchange.dataset_package.package import (
-    package_sha256,
     package_archive_create,
     metadata_load,
     dataset_load,
 )
+from overity.exchange import integrity
 from overity.model.dataset.metadata import (
     DatasetMetadata,
     DatasetAuthor,
@@ -23,7 +23,7 @@ from overity.errors import MalformedDatasetPackage
 
 
 class TestDatasetPackagePackage:
-    def test_package_sha256(self):
+    def test_file_sha256(self):
         """Test computing SHA256 hash of a file."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(b"test content")
@@ -31,7 +31,7 @@ class TestDatasetPackagePackage:
             path = Path(f.name)
 
         try:
-            result = package_sha256(path).hexdigest()
+            result = integrity.file_sha256(path).hexdigest()
             # Known SHA256 hash of "test content"
             assert (
                 result

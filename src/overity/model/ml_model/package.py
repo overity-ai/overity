@@ -11,9 +11,10 @@ Model definition for ML model packages
 > information.
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 from overity.model.ml_model.metadata import MLModelMetadata
 
@@ -28,5 +29,8 @@ class MLModelPackage:
     """Path to input model file on local disk"""
     model_file_path: Path
 
+    """Additional attachments information"""
+    attachments_files: list[Path] = field(default_factory=list)
+
     """Path to example implementation folder on local disk"""
-    example_implementation_path: Optional[Path] = None
+    example_implementation_path: Path | None = None
