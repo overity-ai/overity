@@ -11,6 +11,8 @@ ML Model packaging tools
 > information.
 """
 
+from __future__ import annotations
+
 import json
 import tarfile
 import tempfile
@@ -22,6 +24,7 @@ from overity.exchange import integrity
 
 from overity.model.ml_model.metadata import MLModelMetadata
 from overity.model.ml_model.package import MLModelPackage
+from overity.model.ml_model.attachment import AttachmentMetadata, ExtractedAttachment
 
 from overity.errors import MalformedModelPackage
 
@@ -93,6 +96,31 @@ def _process_model_file(
         ftarget.flush()
 
 
+def _process_attachment(
+    archive_path: Path,
+    tf: tarfile.TarFile,
+    target_folder: Path,
+    att_meta: AttachmentMetadata,
+) -> ExtractedAttachment:
+    try:
+        att_file = tf.getmember(f"attachments/{att_meta.filename}")
+    except KeyError:
+        raise MalformedModelPackage(
+            archive_path, f"Attachment '{att_meta.filename}' not found in archive file"
+        )
+
+    target_path = target_folder / att_meta.filename
+
+    with open(target_path, "wb") as ftarget, tf.extractfile(att_file) as fatt:
+        ftarget.write(fatt.read())
+        ftarget.flush()
+
+    return ExtractedAttachment(
+        meta=att_meta,
+        path=target_path,
+    )
+
+
 def metadata_load(archive_path: Path) -> MLModelMetadata:
     """Load only metadata from archive path"""
 
@@ -104,13 +132,30 @@ def metadata_load(archive_path: Path) -> MLModelMetadata:
     return meta
 
 
-def model_load(archive_path: Path, target_folder: Path) -> MLModelMetadata:
+def model_load(
+    archive_path: Path, target_folder: Path
+) -> tuple[MLModelMetadata, dict[str, ExtractedAttachment]]:
     """Load model metadata from archive, and load model implementation in ftarget"""
 
     archive_path = Path(archive_path)
+    target_folder = Path(target_folder)
+
+    attachments_folder = target_folder / "attachments"
 
     with tarfile.open(archive_path, "r:gz") as archive:
         meta = _process_metadata(archive_path, archive)
         _process_model_file(archive_path, archive, meta, target_folder)
 
-    return meta
+        attachments = {}
+
+        # Process attachments if any
+        if meta.attachments:
+            attachments_folder.mkdir(parents=True)
+            attachments = {
+                att.filename: _process_attachment(
+                    archive_path, archive, attachments_folder, att
+                )
+                for att in meta.attachments
+            }
+
+    return meta, attachments

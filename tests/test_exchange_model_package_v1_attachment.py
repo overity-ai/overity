@@ -5,6 +5,7 @@ Unit tests for model_package_v1/attachment.py
 import pytest
 import tempfile
 import json
+import tarfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from overity.exchange.model_package_v1.attachment import (
@@ -13,7 +14,7 @@ from overity.exchange.model_package_v1.attachment import (
     meta_from_file,
     integrity_check,
 )
-from overity.model.ml_model.attachment import AttachmentMetadata
+from overity.model.ml_model.attachment import AttachmentMetadata, ExtractedAttachment
 from overity.errors import AttachmentIntegrityError
 
 
@@ -499,3 +500,93 @@ class TestAttachmentRoundTrip:
         }
         assert "mimetype" not in encoded
         assert "description" not in encoded
+
+    def test_process_attachment_missing_file(self):
+        """Test _process_attachment when attachment file is missing from archive."""
+        from overity.exchange.model_package_v1.package import _process_attachment
+        from overity.errors import MalformedModelPackage
+        
+        # Create a fake tarfile with no attachment
+        with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as f:
+            archive_path = Path(f.name)
+        
+        # Create empty archive
+        with tarfile.open(archive_path, "w:gz") as archive:
+            pass  # Empty archive
+        
+        # Create target folder
+        with tempfile.TemporaryDirectory() as target_dir:
+            target_path = Path(target_dir)
+            
+            # Create attachment metadata
+            att_meta = AttachmentMetadata(
+                filename="missing.txt",
+                sha256_hash="abc123def4567890abc123def4567890abc123def4567890abc123def4567890",
+                mimetype="text/plain"
+            )
+            
+            try:
+                # Open archive for reading
+                with tarfile.open(archive_path, "r:gz") as archive:
+                    # Should raise MalformedModelPackage
+                    with pytest.raises(MalformedModelPackage) as exc_info:
+                        _process_attachment(archive_path, archive, target_path, att_meta)
+                    
+                    # Verify error message
+                    assert "missing.txt" in str(exc_info.value)
+                    assert "not found in archive" in str(exc_info.value)
+            finally:
+                archive_path.unlink()
+
+    def test_process_attachment_success(self):
+        """Test _process_attachment when attachment file exists in archive."""
+        from overity.exchange.model_package_v1.package import _process_attachment
+        
+        # Create attachment content
+        att_content = b"This is attachment content for testing"
+        
+        # Create temporary file with attachment content
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(att_content)
+            att_file_path = Path(f.name)
+        
+        # Create archive with attachment
+        with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as f:
+            archive_path = Path(f.name)
+        
+        with tarfile.open(archive_path, "w:gz") as archive:
+            archive.add(str(att_file_path), arcname="attachments/test_file.txt")
+        
+        # Create target folder
+        with tempfile.TemporaryDirectory() as target_dir:
+            target_path = Path(target_dir)
+            
+            # Create attachment metadata
+            att_meta = AttachmentMetadata(
+                filename="test_file.txt",
+                sha256_hash="dummy_hash",
+                mimetype="text/plain",
+                description="Test attachment"
+            )
+            
+            try:
+                # Open archive for reading
+                with tarfile.open(archive_path, "r:gz") as archive:
+                    # Process attachment
+                    result = _process_attachment(archive_path, archive, target_path, att_meta)
+                    
+                    # Verify result
+                    assert isinstance(result, ExtractedAttachment)
+                    assert result.meta.filename == "test_file.txt"
+                    assert result.meta.mimetype == "text/plain"
+                    assert result.meta.description == "Test attachment"
+                    assert result.path.exists()
+                    assert result.path.read_bytes() == att_content
+                    
+                    # Verify file was extracted to correct location
+                    expected_path = target_path / "test_file.txt"
+                    assert result.path == expected_path
+                    assert expected_path.exists()
+            finally:
+                archive_path.unlink()
+                att_file_path.unlink()

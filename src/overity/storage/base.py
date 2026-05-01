@@ -11,6 +11,8 @@ Storage backend base class
 > information.
 """
 
+from __future__ import annotations
+
 import re
 import uuid
 from abc import ABC, abstractmethod
@@ -20,6 +22,8 @@ from typing import Callable
 from overity.model.general_info.method import MethodKind
 from overity.model.ml_model.metadata import MLModelMetadata
 from overity.model.ml_model.package import MLModelPackage
+from overity.model.ml_model.attachment import ExtractedAttachment
+
 from overity.model.report import MethodReportKind
 
 from overity.model.inference_agent.metadata import InferenceAgentMetadata
@@ -215,8 +219,8 @@ class StorageBackend(ABC):
     @abstractmethod
     def model_load(
         self, slug: str, target_folder: Path
-    ) -> tuple[MLModelMetadata, HashObject]:
-        """Load a model package. Returns (metadata, sha256_hash)"""
+    ) -> tuple[MLModelMetadata, HashObject, dict[str, ExtractedAttachment]]:
+        """Load a model package. Returns (metadata, sha256_hash, attachments)"""
 
     @abstractmethod
     def model_store(self, slug: str, package: MLModelPackage):

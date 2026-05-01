@@ -623,7 +623,7 @@ def model_use(ctx, slug: str):
     tmpdir = tempfile.TemporaryDirectory()
     tmpdir_path = Path(tmpdir.name).resolve()
 
-    pkginfo, sha256 = ctx.storage.model_load(slug, tmpdir_path)
+    pkginfo, sha256, attachments = ctx.storage.model_load(slug, tmpdir_path)
 
     # Add traceability
     # -> Create artifact key for model
@@ -648,7 +648,7 @@ def model_use(ctx, slug: str):
 
     ctx.tmpdirs.append(tmpdir)
 
-    return tmpdir_path / pkginfo.model_file, pkginfo
+    return tmpdir_path / pkginfo.model_file, pkginfo, attachments
 
 
 @_api_guard
