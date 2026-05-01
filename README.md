@@ -8,7 +8,7 @@ Overity.ai - MLOps oriented framework for trustworthy Edge-AI
 [![PyPI - Version](https://img.shields.io/pypi/v/overity.svg)](https://pypi.org/project/overity)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/overity.svg)](https://pypi.org/project/overity)
 
-> **🚧 Overity.ai is currently under heavy development. Initial release is planned for end of 2025. Leave a star to stay informed! 🚧**
+> **🚧 Overity.ai is currently under heavy development 🚧**
 
 Overity.ai is a open-source MLOps oriented framework for optimization,
 qualification, and deployment of Edge-AI models in critical systems, focusing
@@ -45,10 +45,5 @@ This project is licensed under the terms of the terms of the Apache 2.0 license.
 Main authors
 ------------
 
-- Florian Dupeyron (florian.dupeyron@elsys-design.com) : Project leader and creator
+- Florian Dupeyron (florian.dupeyron@mugcat.fr): Main project author and leader
 
-
-Contact Us
-----------
-
-Please send an email at community@elsys-design.com
