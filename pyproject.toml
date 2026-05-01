@@ -85,7 +85,8 @@ source_pkgs = ["overity", "tests"]
 branch      = true
 parallel    = true
 omit        = [
-	"src/overity/__about__.py"
+	"src/overity/__about__.py",
+	"tests/*.py"
 ]
 
 [tool.coverage.paths]
@@ -180,3 +181,6 @@ code-headers     = "scripts/header_check.py src"
 
 # Linting report using SARIF format for automation
 code-rules-sarif = "ruff check src --output-format sarif -o .lint.sarif"
+
+# Fix code rules
+code-rules-fix   = "ruff check src --fix"
