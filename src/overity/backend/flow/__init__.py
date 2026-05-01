@@ -23,7 +23,6 @@ from pathlib import Path
 from functools import partial
 
 from datetime import datetime as dt
-from dataclasses import dataclass
 
 from overity.backend import program
 from overity.backend import bench as b_bench
@@ -82,6 +81,7 @@ from overity.errors import (
     DuplicateFigureError,
     VersioningInconsistencyError,
 )
+from overity.exchange.model_package_v1 import attachment as exch_attachment
 
 from overity.backend.flow.ctx import FlowCtx, RunMode
 from overity.backend.flow import environment as b_env
@@ -129,11 +129,89 @@ class LoggerWriter:
         pass
 
 
-@dataclass
-class ModelPackageInfo:
-    model_metadata: MLModelMetadata
-    model_file_path: Path  # Path to store model file
-    inference_example_path: Path  # Optional folder path to store inference example
+class ModelPackageBuilder:
+    def __init__(
+        self,
+        slug: str,
+        tmpdir: Path | str,
+        exchange_format: str,
+        version: str,
+        target: str = "agnostic",
+    ):
+        self.slug = slug
+        self.version = version
+        self.tmpdir = Path(tmpdir)
+        self.exchange_format = exchange_format
+        self.target = target
+
+        self.authors = []
+        self.maintainers = []
+        self.attachments = []
+
+        self.model_file = self.tmpdir / f"model.{exchange_format}"
+        self.attachments_dir = self.tmpdir / "attachments"
+        self.inference_example_dir = self.tmpdir / "inference-example"
+
+    # ----------------------------- Initialization
+
+    def folders_create(self):
+        self.attachments_dir.mkdir(parents=True)
+        self.inference_example_dir.mkdir(parents=True)
+
+    # ----------------------------- Metadata tools
+
+    def author_add(self, name: str, email: str, contribution: str | None = None):
+        self.authors.append(
+            MLModelAuthor(name=name, email=email, contribution=contribution)
+        )
+
+    def maintainer_add(self, name: str, email: str):
+        self.maintainers.append(
+            MLModelMaintainer(
+                name=name,
+                email=email,
+            )
+        )
+
+    # ----------------------------- Attachments tools
+
+    def attachment_add(self, filename: str, description: str | None = None) -> Path:
+        # TODO # Check to avoid slashes in file name?
+
+        attachment_path = self.attachments_dir / filename
+        self.attachments.append((attachment_path, description))
+
+        return attachment_path
+
+    # ----------------------------- Build model package info
+
+    def pkginfo(self):
+        # Generate metadata for attachments
+        att_meta = [
+            exch_attachment.meta_from_file(att_path, description=att_desc)
+            for att_path, att_desc in self.attachments
+        ]
+
+        # Create MLModelPackage object
+        return MLModelPackage(
+            metadata=MLModelMetadata(
+                name=self.slug,
+                version=self.version,
+                authors=[
+                    a for a in self.authors
+                ],  # The list generator is used to copy the list and avoid a flaky reference
+                maintainers=[
+                    m for m in self.maintainers
+                ],  # The list generator is used to copy the list and avoid a flaky reference
+                target=self.target,
+                exchange_format=self.exchange_format,
+                model_file=f"model.{self.exchange_format}",
+                attachments=att_meta,
+            ),
+            model_file_path=self.model_file,
+            example_implementation_path=self.inference_example_dir,
+            attachments_files=[att_path for att_path, _ in self.attachments],
+        )
 
 
 def _api_guard(fkt):
@@ -527,7 +605,7 @@ def model_use(ctx, slug: str):
     tmpdir = tempfile.TemporaryDirectory()
     tmpdir_path = Path(tmpdir.name).resolve()
 
-    pkginfo, sha256 = ctx.storage.model_load(slug, tmpdir_path)
+    pkginfo, sha256, attachments = ctx.storage.model_load(slug, tmpdir_path)
 
     # Add traceability
     # -> Create artifact key for model
@@ -552,44 +630,39 @@ def model_use(ctx, slug: str):
 
     ctx.tmpdirs.append(tmpdir)
 
-    return tmpdir_path / pkginfo.model_file, pkginfo
+    return tmpdir_path / pkginfo.model_file, pkginfo, attachments
 
 
 @_api_guard
 @contextmanager
 def model_package(
-    ctx: FlowCtx, slug: str, exchange_format: str, target: str = "agnostic"
+    ctx: FlowCtx,
+    slug: str,
+    exchange_format: str,
+    version: str | None = None,
+    target: str = "agnostic",
 ):
     # TODO # Add name argument as the display name is not the same as the slug
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Initialize package metadata
-        meta = MLModelMetadata(
-            name=slug,
-            version="TODO",  # TODO: How to treat this?
-            # TODO # How to treat the list of authors?
-            authors=[
-                MLModelAuthor(name=a.name, email=a.email, contribution=a.contribution)
-                for a in ctx.method_info.authors
-            ],
-            # TODO: How to determine list of maintainers? Maybe store as program information?
-            maintainers=[
-                MLModelMaintainer(name=a.name, email=a.email)
-                for a in ctx.method_info.authors
-            ],
-            target=target,
+        # Initialize package builder
+        builder = ModelPackageBuilder(
+            slug=slug,
+            tmpdir=tmpdir,
             exchange_format=exchange_format,
-            model_file=f"model.{exchange_format}",
+            version=version,
+            target=target,
         )
 
-        # Initialize context information
-        # TODO # Use MLModelPackage instead of this class?
-        pkginfo = ModelPackageInfo(
-            model_metadata=meta,
-            model_file_path=Path(tmpdir).resolve() / meta.model_file,
-            inference_example_path=Path(tmpdir).resolve() / "inference-example",
-        )
+        builder.folders_create()
 
-        yield pkginfo
+        # By default, add method's authors as model authors
+        # TODO Add option to remove this behaviour if needed?
+        for a in ctx.method_info.authors:
+            builder.author_add(a.name, a.email, a.contribution)
+
+        yield builder
+
+        pkginfo = builder.pkginfo()
 
         # -> Now the user should have stored files...
         # TODO: Add check that model file is effectively stored here, or else raise some exception
@@ -611,15 +684,7 @@ def model_package(
         # Now that package is created, we can create the archive
         sha256 = ctx.storage.model_store(
             slug,
-            MLModelPackage(
-                metadata=meta,
-                model_file_path=pkginfo.model_file_path,
-                example_implementation_path=(
-                    pkginfo.inference_example_path
-                    if pkginfo.inference_example_path.exists()
-                    else None
-                ),
-            ),
+            pkginfo,
         )
 
         # Add artifact metadata

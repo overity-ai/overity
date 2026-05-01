@@ -11,8 +11,10 @@ ML Model metadata model
 > information.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
+
+from overity.model.ml_model.attachment import AttachmentMetadata
 
 
 @dataclass
@@ -70,6 +72,9 @@ class MLModelMetadata:
 
     """Relative to input model file in the package archive file"""
     model_file: str
+
+    """List of attachments available in the model archive"""
+    attachments: List[AttachmentMetadata] = field(default_factory=list)
 
     """Optional identification string indicating which model this model derives from"""
     derives: Optional[str] = None

@@ -22,6 +22,9 @@ from overity.model.ml_model.metadata import (
     MLModelMetadata,
 )
 
+from overity.exchange.model_package_v1 import attachment
+
+
 ####################################################
 # Decoder
 ####################################################
@@ -50,6 +53,7 @@ def _metadata_decode(data: dict[str, any]):
     target = data["target"]
     exchange_format = data["format"]
     model_file = data["model_file"]
+    attachments = [attachment.meta_decode(att) for att in data.get("attachments", [])]
     derives = data.get("derives")
 
     return MLModelMetadata(
@@ -60,6 +64,7 @@ def _metadata_decode(data: dict[str, any]):
         target=target,
         exchange_format=exchange_format,
         model_file=model_file,
+        attachments=attachments,
         derives=derives,
     )
 
@@ -120,6 +125,11 @@ def _metadata_encode(metadata: MLModelMetadata):
 
     if metadata.derives is not None:
         encode_obj["derives"] = metadata.derives
+
+    if metadata.attachments:
+        encode_obj["attachments"] = [
+            attachment.meta_encode(att) for att in metadata.attachments
+        ]
 
     return encode_obj
 

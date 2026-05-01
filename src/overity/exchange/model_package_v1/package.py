@@ -11,29 +11,22 @@ ML Model packaging tools
 > information.
 """
 
+from __future__ import annotations
+
 import json
 import tarfile
 import tempfile
-import hashlib
 
 from pathlib import Path
 
 from overity.exchange.model_package_v1 import metadata as ml_metadata
+from overity.exchange import integrity
 
 from overity.model.ml_model.metadata import MLModelMetadata
 from overity.model.ml_model.package import MLModelPackage
+from overity.model.ml_model.attachment import AttachmentMetadata, ExtractedAttachment
 
 from overity.errors import MalformedModelPackage
-
-
-# TODO # Merge with one used in inference agent package
-def package_sha256(path: Path):
-    path = Path(path)
-
-    with open(path, "rb") as fhandle:
-        digest = hashlib.file_digest(fhandle, "sha256")
-
-    return digest
 
 
 def package_archive_create(model_data: MLModelPackage, output_path: Path):
@@ -46,16 +39,24 @@ def package_archive_create(model_data: MLModelPackage, output_path: Path):
 
         # Create output archive
         with tarfile.open(output_path, "w:gz") as archive:
+            # Add model metadata
             archive.add(fhandle.name, arcname="model-metadata.json")
+
+            # Add model file
             archive.add(
                 model_data.model_file_path, arcname=model_data.metadata.model_file
             )
 
+            # Add attachments
+            for att in model_data.attachments_files:
+                archive.add(str(att), arcname=f"attachments/{att.name}")
+
+            # Add inference example folder
             if model_data.example_implementation_path is not None:
                 archive.add(model_data.example_implementation_path, "inference-example")
 
     # -> fhandle file is removed automatically when exiting the with... clause
-    return package_sha256(output_path)
+    return integrity.file_sha256(output_path)
 
 
 def _process_metadata(archive_path: Path, tf: tarfile.TarFile):
@@ -95,6 +96,31 @@ def _process_model_file(
         ftarget.flush()
 
 
+def _process_attachment(
+    archive_path: Path,
+    tf: tarfile.TarFile,
+    target_folder: Path,
+    att_meta: AttachmentMetadata,
+) -> ExtractedAttachment:
+    try:
+        att_file = tf.getmember(f"attachments/{att_meta.filename}")
+    except KeyError:
+        raise MalformedModelPackage(
+            archive_path, f"Attachment '{att_meta.filename}' not found in archive file"
+        )
+
+    target_path = target_folder / att_meta.filename
+
+    with open(target_path, "wb") as ftarget, tf.extractfile(att_file) as fatt:
+        ftarget.write(fatt.read())
+        ftarget.flush()
+
+    return ExtractedAttachment(
+        meta=att_meta,
+        path=target_path,
+    )
+
+
 def metadata_load(archive_path: Path) -> MLModelMetadata:
     """Load only metadata from archive path"""
 
@@ -106,13 +132,30 @@ def metadata_load(archive_path: Path) -> MLModelMetadata:
     return meta
 
 
-def model_load(archive_path: Path, target_folder: Path) -> MLModelMetadata:
+def model_load(
+    archive_path: Path, target_folder: Path
+) -> tuple[MLModelMetadata, dict[str, ExtractedAttachment]]:
     """Load model metadata from archive, and load model implementation in ftarget"""
 
     archive_path = Path(archive_path)
+    target_folder = Path(target_folder)
+
+    attachments_folder = target_folder / "attachments"
 
     with tarfile.open(archive_path, "r:gz") as archive:
         meta = _process_metadata(archive_path, archive)
         _process_model_file(archive_path, archive, meta, target_folder)
 
-    return meta
+        attachments = {}
+
+        # Process attachments if any
+        if meta.attachments:
+            attachments_folder.mkdir(parents=True)
+            attachments = {
+                att.filename: _process_attachment(
+                    archive_path, archive, attachments_folder, att
+                )
+                for att in meta.attachments
+            }
+
+    return meta, attachments

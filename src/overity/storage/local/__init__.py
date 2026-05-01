@@ -25,6 +25,7 @@ from overity.model.general_info.bench import (
 )
 from overity.model.ml_model.metadata import MLModelMetadata
 from overity.model.ml_model.package import MLModelPackage
+from overity.model.ml_model.attachment import ExtractedAttachment
 from overity.model.report import MethodReportKind, MethodExecutionStatus
 
 from overity.model.inference_agent.metadata import InferenceAgentMetadata
@@ -66,6 +67,7 @@ from overity.errors import (
 from overity.exchange.model_package_v1 import package as ml_package
 from overity.exchange.inference_agent_package import package as agent_package
 from overity.exchange.dataset_package import package as dataset_package
+from overity.exchange import integrity
 
 
 log = logging.getLogger("Local storage")
@@ -858,18 +860,18 @@ class LocalStorage(StorageBackend):
 
     def model_load(
         self, slug: str, target_folder: Path
-    ) -> tuple[MLModelMetadata, HashObject]:
+    ) -> tuple[MLModelMetadata, HashObject, dict[str, ExtractedAttachment]]:
         fpath = self._model_path(slug)
 
         if not fpath.is_file():
             raise ModelNotFound(slug)
 
-        pkginfo = ml_package.model_load(fpath, target_folder)
+        pkginfo, attachments = ml_package.model_load(fpath, target_folder)
 
         # Compute SHA256 of the archive file
-        sha256 = ml_package.package_sha256(fpath)
+        sha256 = integrity.file_sha256(fpath)
 
-        return pkginfo, sha256
+        return pkginfo, sha256, attachments
 
     def model_store(self, slug: str, pkg: MLModelPackage):
         fpath = self._model_path(slug)  # Get path for target archive
@@ -902,7 +904,7 @@ class LocalStorage(StorageBackend):
         pkginfo = agent_package.agent_load(fpath, target_folder)
 
         # Compute SHA256 of the archive file
-        sha256 = agent_package.package_sha256(fpath)
+        sha256 = integrity.file_sha256(fpath)
 
         return pkginfo, sha256
 
@@ -937,7 +939,7 @@ class LocalStorage(StorageBackend):
         pkginfo = dataset_package.dataset_load(fpath, target_folder)
 
         # Compute SHA256 of the archive file
-        sha256 = dataset_package.package_sha256(fpath)
+        sha256 = integrity.file_sha256(fpath)
 
         return pkginfo, sha256
 

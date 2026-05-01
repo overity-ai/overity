@@ -13,7 +13,6 @@ Dataset packaging tools
 
 import tempfile
 import tarfile
-import hashlib
 import json
 
 from pathlib import Path
@@ -22,6 +21,7 @@ from overity.model.dataset.metadata import DatasetMetadata
 from overity.model.dataset.package import DatasetPackageInfo
 
 from overity.exchange.dataset_package import metadata as dataset_metadata
+from overity.exchange import integrity
 
 from overity.errors import MalformedDatasetPackage
 
@@ -29,16 +29,6 @@ from overity.errors import MalformedDatasetPackage
 ####################################################
 # Create package
 ####################################################
-
-
-# TODO # Merge with one used in ml model package and agent package
-def package_sha256(path: Path):
-    path = Path(path)
-
-    with open(path, "rb") as fhandle:
-        digest = hashlib.file_digest(fhandle, "sha256")
-
-    return digest
 
 
 def package_archive_create(dataset_data: DatasetPackageInfo, output_path: Path):
@@ -55,7 +45,7 @@ def package_archive_create(dataset_data: DatasetPackageInfo, output_path: Path):
             archive.add(dataset_data.dataset_data_path, arcname="data")
 
     # -> fhandle file is removed automatically when exiting the with... clause
-    return package_sha256(output_path)
+    return integrity.file_sha256(output_path)
 
 
 ####################################################

@@ -13,7 +13,6 @@ Inference agent packaging tools
 
 import tempfile
 import tarfile
-import hashlib
 import json
 
 from pathlib import Path
@@ -22,6 +21,7 @@ from overity.model.inference_agent.metadata import InferenceAgentMetadata
 from overity.model.inference_agent.package import InferenceAgentPackageInfo
 
 from overity.exchange.inference_agent_package import metadata as agent_metadata
+from overity.exchange import integrity
 
 from overity.errors import MalformedAgentPackage
 
@@ -29,16 +29,6 @@ from overity.errors import MalformedAgentPackage
 ####################################################
 # Create package
 ####################################################
-
-
-# TODO # Merge with one used in ml model package
-def package_sha256(path: Path):
-    path = Path(path)
-
-    with open(path, "rb") as fhandle:
-        digest = hashlib.file_digest(fhandle, "sha256")
-
-    return digest
 
 
 def package_archive_create(agent_data: InferenceAgentPackageInfo, output_path: Path):
@@ -55,7 +45,7 @@ def package_archive_create(agent_data: InferenceAgentPackageInfo, output_path: P
             archive.add(agent_data.agent_data_path, arcname="data")
 
     # -> fhandle file is removed automatically when exiting the with... clause
-    return package_sha256(output_path)
+    return integrity.file_sha256(output_path)
 
 
 ####################################################
