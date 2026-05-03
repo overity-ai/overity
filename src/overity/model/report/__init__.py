@@ -99,6 +99,7 @@ class MethodReport:
         cls,
         uuid: str,
         program: str,
+        stage: MethodExecutionStage,
         method_info: MethodInfo,
         date_started: dt | None = None,
     ) -> MethodReport:
@@ -110,8 +111,8 @@ class MethodReport:
             method_info=method_info,
             date_started=date_started,
             date_ended=date_started,
-            stage=MethodExecutionStage.Preview,
-            status=MethodExecutionStatus.ExecutionSuccess,
+            stage=stage,
+            status=None,
             environment={},
             context={},
             traceability_graph=ArtifactGraph.default(),

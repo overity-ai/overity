@@ -30,11 +30,18 @@ def load(pdir: Path, kind: MethodReportKind, identifier: str):
     return st.report_load(kind, identifier)
 
 
-def list(pdir: Path, kind: MethodReportKind, include_all: bool = False):
+def load_info(pdir: Path, kind: MethodReportKind, identifier: str):
+    """This is a variant of the load function that should be used when requesting info for a report"""
+
+    st = LocalStorage(pdir)
+    return st.report_load(kind, identifier)
+
+
+def list(pdir: Path, kind: MethodReportKind):
     log.info(f"Get list of '{kind.value}' reports for program in '{pdir}'")
 
     st = LocalStorage(pdir)
-    return st.reports_list(kind, include_all=include_all)
+    return st.reports_list(kind)
 
 
 def remove(pdir: Path, kind: MethodReportKind, identifier: str):

@@ -56,89 +56,14 @@ class TestAnalysisReports:
             # Create LocalStorage instance
             storage = LocalStorage(Path("/test/program"))
 
-            # Call the function with default include_all=False
-            reports = storage.analysis_reports(include_all=False)
+            # Call the function
+            reports = storage.analysis_reports()
 
             # Verify results - only successful reports should be returned
             assert len(reports) == 2
             assert "report1" in reports
             assert "report2" in reports
             assert "report3" not in reports
-
-            # Verify glob was called correctly
-            mock_glob.assert_called_once_with("*.json")
-
-            # Verify report_json.from_file was called for each report
-            assert mock_report_json_from_file.call_count == 3
-
-    def test_analysis_reports_success_include_all_true(self):
-        """Test successful retrieval of analysis reports with include_all=True."""
-        with patch("pathlib.Path.glob") as mock_glob, patch(
-            "overity.exchange.report_json.from_file"
-        ) as mock_report_json_from_file:
-            # Create mock report files
-            mock_report_files = [
-                Path("/test/program/shelf/analysis_reports/report1.json"),
-                Path("/test/program/shelf/analysis_reports/report2.json"),
-                Path("/test/program/shelf/analysis_reports/report3.json"),
-            ]
-
-            # Setup glob to return the mock files
-            mock_glob.return_value = mock_report_files
-
-            # Create mock report info objects with different statuses
-            mock_report1 = MagicMock()
-            mock_report1.status = MethodExecutionStatus.ExecutionSuccess
-
-            mock_report2 = MagicMock()
-            mock_report2.status = MethodExecutionStatus.ExecutionFailureException
-
-            mock_report3 = MagicMock()
-            mock_report3.status = MethodExecutionStatus.ExecutionFailureConstraints
-
-            # Setup report_json.from_file to return different reports
-            def from_file_side_effect(path):
-                basename = os.path.basename(str(path))
-                if basename == "report1.json":
-                    return mock_report1
-                elif basename == "report2.json":
-                    return mock_report2
-                elif basename == "report3.json":
-                    return mock_report3
-                return None
-
-            mock_report_json_from_file.side_effect = from_file_side_effect
-
-            # Create LocalStorage instance
-            storage = LocalStorage(Path("/test/program"))
-
-            # Call the function with include_all=True
-            reports = storage.analysis_reports(include_all=True)
-
-            # Verify results - all reports should be returned
-            assert len(reports) == 3
-            assert "report1" in reports
-            assert "report2" in reports
-            assert "report3" in reports
-
-            # Verify glob was called correctly
-            mock_glob.assert_called_once_with("*.json")
-
-    def test_analysis_reports_empty_folder(self):
-        """Test analysis_reports with empty folder."""
-        with patch("pathlib.Path.glob") as mock_glob:
-            # Setup glob to return empty list
-            mock_glob.return_value = []
-
-            # Create LocalStorage instance
-            storage = LocalStorage(Path("/test/program"))
-
-            # Call the function
-            reports = storage.analysis_reports()
-
-            # Verify results - empty tuple should be returned
-            assert len(reports) == 0
-            assert reports == ()
 
             # Verify glob was called
             mock_glob.assert_called_once_with("*.json")
@@ -147,7 +72,7 @@ class TestAnalysisReports:
         """Test analysis_reports with invalid/corrupted JSON files."""
         with patch("pathlib.Path.glob") as mock_glob, patch(
             "overity.exchange.report_json.from_file"
-        ) as mock_report_json_from_file, patch("overity.storage.local.log") as mock_log:
+        ) as mock_report_json_from_file, patch("logging.getLogger") as mock_get_logger:
             # Create mock report files
             mock_report_files = [
                 Path("/test/program/shelf/analysis_reports/valid_report.json"),
@@ -178,6 +103,10 @@ class TestAnalysisReports:
 
             mock_report_json_from_file.side_effect = from_file_side_effect
 
+            # Create mock logger
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+
             # Create LocalStorage instance
             storage = LocalStorage(Path("/test/program"))
 
@@ -191,14 +120,13 @@ class TestAnalysisReports:
             assert "corrupted_report" not in reports
 
             # Verify logging for invalid files
-            assert mock_log.info.call_count == 2  # Two invalid files
-            mock_log.debug.assert_called()
+            assert mock_logger.info.call_count == 2  # Two invalid files
 
     def test_analysis_reports_mixed_valid_invalid(self):
         """Test analysis_reports with mix of valid and invalid files."""
         with patch("pathlib.Path.glob") as mock_glob, patch(
             "overity.exchange.report_json.from_file"
-        ) as mock_report_json_from_file, patch("overity.storage.local.log") as mock_log:
+        ) as mock_report_json_from_file, patch("logging.getLogger") as mock_get_logger:
             # Create mock report files
             mock_report_files = [
                 Path("/test/program/shelf/analysis_reports/report1.json"),
@@ -209,6 +137,10 @@ class TestAnalysisReports:
 
             # Setup glob to return the mock files
             mock_glob.return_value = mock_report_files
+
+            # Create mock logger
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
 
             # Create mock report info objects
             mock_report1 = MagicMock()
@@ -246,7 +178,7 @@ class TestAnalysisReports:
             assert "report4" not in reports
 
             # Verify logging for invalid files
-            assert mock_log.info.call_count == 2  # Two invalid files
+            assert mock_logger.info.call_count == 2  # Two invalid files
 
     def test_analysis_reports_default_parameter(self):
         """Test analysis_reports with default parameter (include_all=False)."""

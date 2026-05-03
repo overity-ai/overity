@@ -32,12 +32,6 @@ def setup_parser(parser: ArgumentParser):
     subcommand.add_argument(
         "kind", type=types.parse_report_kind, help="What report kind to list"
     )
-    subcommand.add_argument(
-        "--all",
-        dest="include_all",
-        action="store_true",
-        help="Include reports with failed status",
-    )
 
     return subcommand
 
@@ -45,7 +39,7 @@ def setup_parser(parser: ArgumentParser):
 def run(args: Namespace):
     cwd = Path.cwd()
     pdir = b_program.find_current(start_path=cwd)
-    reports = b_report.list(pdir, kind=args.kind, include_all=args.include_all)
+    reports = b_report.list(pdir, kind=args.kind)
 
     for rp in reports:
         print(rp)
