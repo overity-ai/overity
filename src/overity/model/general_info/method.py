@@ -21,6 +21,9 @@ from enum import Enum
 class MethodKind(Enum):
     """Describe what this method is for"""
 
+    """Datasets and models preparation before training/optimization"""
+    Preparation = "preparation"
+
     """Traning and optimization is for creating new models"""
     TrainingOptimization = "training_optimization"
 

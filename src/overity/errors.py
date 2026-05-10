@@ -72,6 +72,11 @@ class UnknownMethodError(Exception):
         super().__init__("Can't find called method file path")
 
 
+class UnknownMethodFormatError(Exception):
+    def __init__(self):
+        super().__init__("Unknown method format")
+
+
 class NotInDMQError(Exception):
     def __init__(self):
         super().__init__(

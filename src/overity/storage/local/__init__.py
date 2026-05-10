@@ -62,6 +62,7 @@ from overity.errors import (
     ReportNotFound,
     MethodNotFound,
     NoVersionAvailable,
+    UnknownMethodFormatError,
 )
 
 from overity.exchange.model_package_v1 import package as ml_package
@@ -87,6 +88,7 @@ class LocalStorage(StorageBackend):
         self.capabilities_folder = self.catalyst_folder / "capabilities"
         self.benches_folder = self.catalyst_folder / "benches"
 
+        self.preparation_folder = self.ingredients_folder / "preparation"
         self.training_optimization_folder = (
             self.ingredients_folder / "training_optimization"
         )
@@ -99,6 +101,7 @@ class LocalStorage(StorageBackend):
         self.lib_folder = self.ingredients_folder / "lib"
 
         self.experiment_runs_folder = self.shelf_folder / "experiment_runs"
+        self.preparation_reports_folder = self.shelf_folder / "preparation_reports"
         self.optimization_reports_folder = self.shelf_folder / "optimization_reports"
         self.execution_reports_folder = self.shelf_folder / "execution_reports"
         self.analysis_reports_folder = self.shelf_folder / "analysis_reports"
@@ -112,6 +115,7 @@ class LocalStorage(StorageBackend):
             self.execution_targets_folder,
             self.capabilities_folder,
             self.benches_folder,
+            self.preparation_folder,
             self.training_optimization_folder,
             self.measurement_qualification_folder,
             self.bench_abstractions_folder,
@@ -119,6 +123,7 @@ class LocalStorage(StorageBackend):
             self.experiments_folder,
             self.lib_folder,
             self.experiment_runs_folder,
+            self.preparation_reports_folder,
             self.optimization_reports_folder,
             self.execution_reports_folder,
             self.analysis_reports_folder,
@@ -160,6 +165,9 @@ class LocalStorage(StorageBackend):
     def _experiment_run_report_path(self, run_uuid: str):
         return self.experiment_runs_folder / f"{run_uuid}.json"
 
+    def _preparation_report_path(self, run_uuid: str):
+        return self.preparation_reports_folder / f"{run_uuid}.json"
+
     def _optimization_report_path(self, run_uuid: str):
         return self.optimization_reports_folder / f"{run_uuid}.json"
 
@@ -181,6 +189,8 @@ class LocalStorage(StorageBackend):
     def method_run_report_path(self, run_uuid: str, method_kind: MethodKind):
         if method_kind == MethodKind.TrainingOptimization:
             return self._optimization_report_path(run_uuid)
+        elif method_kind == MethodKind.Preparation:
+            return self._preparation_report_path(run_uuid)
         elif method_kind == MethodKind.MeasurementQualification:
             return self._execution_report_path(run_uuid)
         elif method_kind == MethodKind.Analysis:
@@ -376,6 +386,50 @@ class LocalStorage(StorageBackend):
 
         return found_methods, found_errors
 
+    def preparation_methods(self):
+        """Get list of preparation methods registered in program"""
+
+        def process_file(x: Path):
+            try:
+                ext = x.suffix
+
+                if ext == ".py":
+                    return file_py.from_file(x, kind=MethodKind.Preparation)
+                elif ext == ".ipynb":
+                    return file_ipynb.from_file(x, kind=MethodKind.Preparation)
+                else:
+                    raise UnknownMethodFormatError()
+
+            except Exception as exc:
+                return (x, exc)
+
+        # Process files
+        py_files = self.preparation_folder.glob("*.py")
+        ipynb_files = self.preparation_folder.glob("*.ipynb")
+        processed = list(map(process_file, itertools.chain(py_files, ipynb_files)))
+
+        # Isolate found methods and errors
+        found_methods = list(filter(lambda x: isinstance(x, MethodInfo), processed))
+        found_errors = list(filter(lambda x: isinstance(x, tuple), processed))
+
+        # Look for duplicates in found methods
+        mtd_dict = {}
+        for mtd in found_methods:
+            mtd_dict[mtd.slug] = (mtd_dict.get(mtd.slug) or []) + [mtd]
+
+        duplicates = {k: v for k, v in mtd_dict.items() if len(v) > 1}
+
+        for slug, mtds in duplicates.items():
+            for mtd in mtds:
+                found_errors.append(
+                    (
+                        mtd.path,
+                        DuplicateSlugError(mtd.path, slug),
+                    )
+                )
+
+        return found_methods, found_errors
+
     def measurement_qualification_methods(self):
         """Get list of measurement and qualification methods registered in program"""
 
@@ -391,6 +445,8 @@ class LocalStorage(StorageBackend):
                     return file_ipynb.from_file(
                         x, kind=MethodKind.MeasurementQualification
                     )
+                else:
+                    raise UnknownMethodFormatError()
 
             except Exception as exc:
                 return (x, exc)
@@ -459,6 +515,8 @@ class LocalStorage(StorageBackend):
                     return file_py.from_file(x, kind=MethodKind.Analysis)
                 elif ext == ".ipynb":
                     return file_ipynb.from_file(x, kind=MethodKind.Analysis)
+                else:
+                    raise UnknownMethodFormatError()
 
             except Exception as exc:
                 return (x, exc)
@@ -498,6 +556,8 @@ class LocalStorage(StorageBackend):
 
         if pp.is_relative_to(self.training_optimization_folder):
             return MethodKind.TrainingOptimization
+        elif pp.is_relative_to(self.preparation_folder):
+            return MethodKind.Preparation
         elif pp.is_relative_to(self.measurement_qualification_folder):
             return MethodKind.MeasurementQualification
         elif pp.is_relative_to(self.analysis_folder):
@@ -512,6 +572,7 @@ class LocalStorage(StorageBackend):
         """Get the path to the specified method kind"""
 
         dirs = {
+            MethodKind.Preparation: self.preparation_folder,
             MethodKind.TrainingOptimization: self.training_optimization_folder,
             MethodKind.MeasurementQualification: self.measurement_qualification_folder,
             MethodKind.Analysis: self.analysis_folder,
@@ -634,6 +695,12 @@ class LocalStorage(StorageBackend):
         """Get list of experiment runs reports in program"""
         raise NotImplementedError
 
+    def preparation_reports(self):
+        """Get a list of identifiers for prepration reports in program"""
+        return tuple(
+            map(lambda x: x.stem, self.preparation_reports_folder.glob("*.json"))
+        )
+
     def optimization_reports(self):
         """Get list of identifiers for optimization reports in program"""
 
@@ -658,6 +725,9 @@ class LocalStorage(StorageBackend):
         Returns:
             Tuple of report identifiers, filtered by status if include_all=False
         """
+
+        # TODO: remove include_all argument
+
         import logging
 
         log = logging.getLogger("LocalStorage.analysis_reports")
@@ -686,6 +756,16 @@ class LocalStorage(StorageBackend):
 
     def experiment_report_load(self, identifier: str):
         raise NotImplementedError
+
+    def preparation_report_load(self, identifier: str):
+        report_path = self._preparation_report_path(identifier)
+
+        if not report_path.is_file():
+            raise ReportNotFound(
+                self.base_folder, MethodReportKind.Preparation, identifier
+            )
+
+        return report_path, report_json.from_file(report_path)
 
     def optimization_report_load(self, identifier: str):
         report_path = self._optimization_report_path(identifier)
@@ -719,6 +799,10 @@ class LocalStorage(StorageBackend):
 
     def experiment_report_remove(self, identifier: str):
         raise NotImplementedError
+
+    def preparation_report_remove(self, identifier: str):
+        pp = self._preparation_report_path(identifier)
+        pp.unlink(missing_ok=True)
 
     def optimization_report_remove(self, identifier: str):
         pp = self._optimization_report_path(identifier)
@@ -931,6 +1015,11 @@ class LocalStorage(StorageBackend):
         """Check if the given uuid exists in experiment run reports"""
 
         return self._experiment_run_report_path(run_uuid).is_file()
+
+    def preparation_report_uuid_exists(self, run_uuid: str):
+        """Check if the given preparation report exists with the given uuid"""
+
+        return self._preparation_report_path(run_uuid).is_file()
 
     def optimization_report_uuid_exists(self, report_uuid: str):
         """Check if the given optimization report exists with given uuid"""
