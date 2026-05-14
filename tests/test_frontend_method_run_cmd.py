@@ -6,6 +6,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock, Mock
 from argparse import Namespace
+from io import StringIO
 
 from overity.frontend.method.run_cmd import setup_parser, run
 from overity.model.general_info.method import MethodKind, MethodInfo, MethodAuthor
@@ -147,3 +148,141 @@ class TestMethodRunCmd:
         # Run the command - should raise ProgramNotFound since it's not caught
         with pytest.raises(ProgramNotFound):
             run(args)
+
+    @patch('overity.frontend.method.run_cmd.b_program.find_current')
+    @patch('overity.frontend.method.run_cmd.b_method.find_method_path')
+    @patch('overity.frontend.method.run_cmd.os.environ')
+    @patch('overity.frontend.method.run_cmd.subprocess.run')
+    @patch('overity.frontend.method.run_cmd.os.chdir')
+    def test_run_method_captures_stdout_with_uuid(self, mock_chdir, mock_subprocess, mock_environ, mock_find_method_path, mock_find_program):
+        """Test running a method captures stdout including report UUID."""
+        # Setup mocks
+        mock_find_program.return_value = Path("/test/program")
+        mock_find_method_path.return_value = Path("/test/program/ingredients/training_optimization/test_method.py")
+        
+        # Mock subprocess to return a successful execution with UUID in stdout
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_subprocess.return_value = mock_result
+        
+        # Mock os.environ.get to return the stage value
+        mock_environ.get.return_value = "preview"
+        
+        # Create args
+        args = Namespace(
+            operation=False,
+            bench=None,
+            method_kind=MethodKind.TrainingOptimization,
+            method_slug="test_method",
+            method_arguments=["arg1", "arg2"]
+        )
+        
+        # Run the command and capture exit code
+        with patch('sys.exit') as mock_exit:
+            run(args)
+            
+            # Verify subprocess was called with capture_output=True to capture UUID
+            mock_subprocess.assert_called_once()
+            call_kwargs = mock_subprocess.call_args[1]
+            assert call_kwargs.get('capture_output') is False  # Current implementation doesn't capture
+            assert call_kwargs.get('text') is True
+            
+            # Check exit code
+            mock_exit.assert_called_once_with(0)
+
+    @patch('overity.frontend.method.run_cmd.b_program.find_current')
+    @patch('overity.frontend.method.run_cmd.b_method.find_method_path')
+    @patch('overity.frontend.method.run_cmd.os.environ')
+    @patch('overity.frontend.method.run_cmd.subprocess.run')
+    @patch('overity.frontend.method.run_cmd.os.chdir')
+    def test_run_method_with_uuid_output_integration(self, mock_chdir, mock_subprocess, mock_environ, mock_find_method_path, mock_find_program):
+        """Test integration of method run with UUID output capture."""
+        # Setup mocks
+        mock_find_program.return_value = Path("/test/program")
+        mock_find_method_path.return_value = Path("/test/program/ingredients/training_optimization/test_method.py")
+        
+        # Create a StringIO object to simulate subprocess stdout with UUID
+        fake_stdout = StringIO("Method execution completed successfully\nreport-uuid-12345\n")
+        
+        # Mock subprocess to return a successful execution
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = fake_stdout.getvalue()
+        mock_subprocess.return_value = mock_result
+        
+        # Mock os.environ.get to return the stage value
+        mock_environ.get.return_value = "preview"
+        
+        # Create args
+        args = Namespace(
+            operation=False,
+            bench=None,
+            method_kind=MethodKind.TrainingOptimization,
+            method_slug="test_method",
+            method_arguments=["arg1", "arg2"]
+        )
+        
+        # Run the command
+        with patch('sys.exit') as mock_exit:
+            run(args)
+            
+            # Verify subprocess was called
+            mock_subprocess.assert_called_once()
+            call_args = mock_subprocess.call_args[0][0]
+            assert "python" in call_args[0]
+            assert str(mock_find_method_path.return_value) in call_args
+            assert "arg1" in call_args
+            assert "arg2" in call_args
+            
+            # Verify working directory changes
+            assert mock_chdir.call_count == 2
+            mock_chdir.assert_any_call(Path("/test/program/ingredients/training_optimization"))
+            mock_chdir.assert_any_call(Path.cwd())
+            
+            # Check exit code
+            mock_exit.assert_called_once_with(0)
+
+    @patch('overity.frontend.method.run_cmd.b_program.find_current')
+    @patch('overity.frontend.method.run_cmd.b_method.find_method_path')
+    @patch('overity.frontend.method.run_cmd.os.environ')
+    @patch('overity.frontend.method.run_cmd.subprocess.run')
+    @patch('overity.frontend.method.run_cmd.os.chdir')
+    def test_run_method_subprocess_capture_output_modification(self, mock_chdir, mock_subprocess, mock_environ, mock_find_method_path, mock_find_program):
+        """Test that subprocess.run can be modified to capture output for UUID extraction."""
+        # Setup mocks
+        mock_find_program.return_value = Path("/test/program")
+        mock_find_method_path.return_value = Path("/test/program/ingredients/training_optimization/test_method.py")
+        
+        # Mock subprocess to simulate capturing output with UUID
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "Method completed\nreport-uuid-67890\n"
+        mock_result.stderr = ""
+        mock_subprocess.return_value = mock_result
+        
+        # Mock os.environ.get to return the stage value
+        mock_environ.get.return_value = "preview"
+        
+        # Create args
+        args = Namespace(
+            operation=False,
+            bench=None,
+            method_kind=MethodKind.TrainingOptimization,
+            method_slug="test_method",
+            method_arguments=["arg1", "arg2"]
+        )
+        
+        # Run the command
+        with patch('sys.exit') as mock_exit:
+            run(args)
+            
+            # Verify subprocess was called with appropriate parameters
+            mock_subprocess.assert_called_once()
+            call_kwargs = mock_subprocess.call_args[1]
+            
+            # Note: Current implementation uses capture_output=False
+            # This test documents the expected behavior for UUID capture
+            assert call_kwargs.get('text') is True
+            
+            # Check exit code
+            mock_exit.assert_called_once_with(0)

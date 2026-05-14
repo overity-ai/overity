@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from io import TextIOWrapper
 
 from overity.model.general_info.program import ProgramInfo
 from overity.model.general_info.method import MethodKind
@@ -66,6 +67,11 @@ class FlowCtx:
     # list of encountered exceptions
     exceptions: list[BaseException]
 
+    # ---------------------------------- Stream backup
+
+    # Backup of the real stdout
+    stdout: TextIOWrapper
+
     # ---------------------------------- Bench specifics
     # -> These should be used only when running a measurement / qualification method
 
@@ -94,6 +100,7 @@ class FlowCtx:
             args=None,
             tmpdirs=[],
             exceptions=[],
+            stdout=None,
             bench_info=None,
             bench_abstraction=None,
             bench_instance=None,
