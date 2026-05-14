@@ -356,6 +356,45 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
                 ingredients_version_info,
             )
 
+    elif ctx.method_kind == MethodKind.Preparation:
+        ctx.report.method_key = ArtifactKey(
+            kind=ArtifactKind.PreparationMethod, id=ctx.method_slug
+        )
+
+        ctx.report.report_key = ArtifactKey(
+            kind=ArtifactKind.PreparationReport, id=ctx.report.uuid
+        )
+
+        ctx.report.run_key = ArtifactKey(
+            kind=ArtifactKind.PreparationRun, id=ctx.report.uuid
+        )
+
+        # Add link between run and report
+        ctx.report.traceability_graph.add(
+            ArtifactLink(
+                a=ctx.report.report_key,
+                b=ctx.report.run_key,
+                kind=ArtifactLinkKind.ReportFor,
+            )
+        )
+
+        # Add link between run and method
+        ctx.report.traceability_graph.add(
+            ArtifactLink(
+                a=ctx.report.run_key,
+                b=ctx.report.method_key,
+                kind=ArtifactLinkKind.MethodUse,
+            )
+        )
+
+        # Add versioning information for method
+        if ingredients_version_info is not None:
+            ctx.report.traceability_graph.metadata_store(
+                ctx.report.method_key,
+                "commit",
+                ingredients_version_info,
+            )
+
     elif ctx.method_kind == MethodKind.MeasurementQualification:
         ctx.report.method_key = ArtifactKey(
             kind=ArtifactKind.MeasurementQualificationMethod, id=ctx.method_slug

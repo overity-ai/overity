@@ -316,7 +316,9 @@ class StorageBackend(ABC):
     def method_report_uuid_get(self, kind: MethodKind):
         """Get an available report for a given method kind"""
 
-        if kind == MethodKind.TrainingOptimization:
+        if kind == MethodKind.Preparation:
+            return self.preparation_report_uuid_get()
+        elif kind == MethodKind.TrainingOptimization:
             return self.optimization_report_uuid_get()
         elif kind == MethodKind.MeasurementQualification:
             return self.execution_report_uuid_get()
