@@ -440,6 +440,9 @@ def init(ctx: FlowCtx, method_path: Path, run_mode: RunMode):
     stdout_log = logging.getLogger("stdout")
     stderr_log = logging.getLogger("stderr")
 
+    # Save stdout
+    ctx.stdout = sys.stdout
+
     # Redirect stdout and stderr...
     sys.stdout = LoggerWriter(stdout_log, logging.INFO)
     sys.stderr = LoggerWriter(stderr_log, logging.ERROR)
@@ -566,6 +569,9 @@ def exit_handler(ctx: FlowCtx):
     log.info(f"Save output report to {output_path}")
 
     report_json.to_file(ctx.report, output_path)
+
+    # Print the report UUID to terminal
+    ctx.stdout.write(ctx.report.uuid + "\n")
 
 
 def method_info_get(ctx):
