@@ -70,6 +70,10 @@ class StorageBackend(ABC):
     # -------------------------- Ingredients
 
     @abstractmethod
+    def preparation_methods(self):
+        """Get list of preparation methods registered in program"""
+
+    @abstractmethod
     def training_optimization_methods(self):
         """Get list of optimization methods registered in program"""
 
@@ -108,6 +112,10 @@ class StorageBackend(ABC):
         """Get list of experiment runs reports in program"""
 
     @abstractmethod
+    def preparation_reports(self):
+        """Get list of preparation reports in program"""
+
+    @abstractmethod
     def optimization_reports(self):
         """Get list of optimization reports in program"""
 
@@ -122,6 +130,8 @@ class StorageBackend(ABC):
     def reports_list(self, kind: MethodReportKind):
         if kind == MethodReportKind.Experiment:
             return self.experiment_runs()
+        elif kind == MethodReportKind.Preparation:
+            return self.preparation_reports()
         elif kind == MethodReportKind.TrainingOptimization:
             return self.optimization_reports()
         elif kind == MethodReportKind.Execution:
@@ -132,6 +142,10 @@ class StorageBackend(ABC):
     @abstractmethod
     def experiment_report_load(self, identifier: str):
         """Load an experiment run report"""
+
+    @abstractmethod
+    def preparation_report_load(self, identifier: str):
+        """Load a preparation report"""
 
     @abstractmethod
     def optimization_report_load(self, identifier: str):
@@ -150,6 +164,8 @@ class StorageBackend(ABC):
 
         if report_kind == MethodReportKind.Experiment:
             return self.experiment_report_load(identifier)
+        elif report_kind == MethodReportKind.Preparation:
+            return self.preparation_report_load(identifier)
         elif report_kind == MethodReportKind.TrainingOptimization:
             return self.optimization_report_load(identifier)
         elif report_kind == MethodReportKind.Execution:
@@ -160,6 +176,10 @@ class StorageBackend(ABC):
     @abstractmethod
     def experiment_report_remove(self, identifier: str):
         """Remove an experiment run report"""
+
+    @abstractmethod
+    def preparation_report_remove(self, identifier: str):
+        """Remove a preparation report"""
 
     @abstractmethod
     def optimization_report_remove(self, identifier: str):
@@ -176,6 +196,8 @@ class StorageBackend(ABC):
     def report_remove(self, report_kind: MethodReportKind, identifier: str):
         if report_kind == MethodReportKind.Experiment:
             self.experiment_report_remove(identifier)
+        elif report_kind == MethodReportKind.Preparation:
+            self.preparation_report_remove(identifier)
         elif report_kind == MethodReportKind.TrainingOptimization:
             self.optimization_report_remove(identifier)
         elif report_kind == MethodReportKind.Execution:
@@ -275,6 +297,10 @@ class StorageBackend(ABC):
         """Get an available run uuid"""
         return self._default_uuid_get(self.experiment_run_uuid_exists)
 
+    def preparation_report_uuid_get(self):
+        """Get an available preparation report uuid"""
+        return self._default_uuid_get(self.preparation_report_uuid_exists)
+
     def optimization_report_uuid_get(self):
         """Get an available optimization report uuid"""
         return self._default_uuid_get(self.optimization_report_uuid_exists)
@@ -290,7 +316,9 @@ class StorageBackend(ABC):
     def method_report_uuid_get(self, kind: MethodKind):
         """Get an available report for a given method kind"""
 
-        if kind == MethodKind.TrainingOptimization:
+        if kind == MethodKind.Preparation:
+            return self.preparation_report_uuid_get()
+        elif kind == MethodKind.TrainingOptimization:
             return self.optimization_report_uuid_get()
         elif kind == MethodKind.MeasurementQualification:
             return self.execution_report_uuid_get()
@@ -302,6 +330,10 @@ class StorageBackend(ABC):
     @abstractmethod
     def experiment_run_uuid_exists(self, run_uuid: str):
         """Check if the given uuid exists in experiment run reports"""
+
+    @abstractmethod
+    def preparation_report_uuid_exists(self, report_uuid: str):
+        """Check if the given uuid exists in the preparation reports"""
 
     @abstractmethod
     def optimization_report_uuid_exists(self, report_uuid: str):

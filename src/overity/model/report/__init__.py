@@ -62,6 +62,7 @@ class MethodExecutionStage(Enum):
 
 class MethodReportKind(Enum):
     Experiment = "experiment"
+    Preparation = "preparation"
     TrainingOptimization = "training_optimization"
     Execution = "execution"
     Analysis = "analysis"

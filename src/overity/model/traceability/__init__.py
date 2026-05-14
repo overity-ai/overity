@@ -26,6 +26,7 @@ class ArtifactKind(Enum):
     BenchInstanciation = "bench_instanciation"
 
     # Ingredients
+    PreparationMethod = "preparation_method"
     AnalysisMethod = "analysis_method"
     MeasurementQualificationMethod = "measurement_qualification_method"
     TrainingOptimizationMethod = "training_optimization_method"
@@ -37,12 +38,14 @@ class ArtifactKind(Enum):
     InferenceAgent = "inference_agent"
 
     # Shelf
+    PreparationReport = "preparation_report"
     AnalysisReport = "analysis_report"
     ExecutionReport = "execution_report"
     ExperimentRun = "experiment_run"
     OptimizationReport = "optimization_report"
 
     # Runs
+    PreparationRun = "preparation_run"
     OptimizationRun = "optimization_run"
     ExecutionRun = "execution_run"
     AnalysisRun = "analysis_run"

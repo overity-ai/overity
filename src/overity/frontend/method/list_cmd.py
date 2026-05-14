@@ -51,7 +51,9 @@ def run(args: Namespace):
 
         # List available methods
         methods, errors = [], None
-        if args.kind == MethodKind.TrainingOptimization:
+        if args.kind == MethodKind.Preparation:
+            methods, errors = b_method.list_preparation_methods(pdir)
+        elif args.kind == MethodKind.TrainingOptimization:
             methods, errors = b_method.list_topt_methods(pdir)
         elif args.kind == MethodKind.MeasurementQualification:
             methods, errors = b_method.list_measurement_qualification_methods(pdir)

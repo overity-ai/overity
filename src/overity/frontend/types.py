@@ -20,13 +20,19 @@ from overity.model.report import MethodReportKind
 def parse_method_kind(x: str):
     """Parse method kind from string argument."""
 
+    # Preparation
+    if x in {"preparation", "pr", "prep"}:
+        return MethodKind.Preparation
+
     # Training optimization
-    if x in {"training-optimization", "to"}:
+    elif x in {"training-optimization", "to"}:
         return MethodKind.TrainingOptimization
 
+    # Measurement qualification
     elif x in {"measurement-qualification", "mq"}:
         return MethodKind.MeasurementQualification
 
+    # Analysis
     elif x in {"analysis", "an"}:
         return MethodKind.Analysis
 
@@ -37,7 +43,10 @@ def parse_method_kind(x: str):
 def parse_report_kind(x: str):
     """Parse report kind from string argument."""
 
-    if x in {"training-optimization", "to", "topt"}:
+    if x in {"preparation", "pr", "prep"}:
+        return MethodReportKind.Preparation
+
+    elif x in {"training-optimization", "to", "topt"}:
         return MethodReportKind.TrainingOptimization
 
     elif x in {"execution", "exec", "ex"}:
