@@ -3,7 +3,7 @@
 This file documents the commands used for development tasks in the Overity.ai project.
 
 ## Type Checking
-- `just lint-types`: Run mypy for type checking.
+- `hatch run types:check`: Run mypy for type checking.
 
 ## Linting and Formatting
 - `just lint-rules`: Lint the code using ruff.
@@ -29,3 +29,5 @@ The `src/overity` folder contains the following subfolders:
 Test code is available in the `tests` folder
 
 To run tests, use the `just test` command
+
+To run tests with a specific python version, indicate it as a recipe parameter, for instance: `just test 3.12`
