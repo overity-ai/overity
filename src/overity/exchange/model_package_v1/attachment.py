@@ -64,8 +64,8 @@ def meta_encode(attachment: AttachmentMetadata) -> dict[str, any]:
 def meta_from_file(pp: Path, description: str | None = None) -> AttachmentMetadata:
     """Generate attachment from an existing file"""
 
-    # Guess file type
-    mime_type, _ = mimetypes.guess_file_type(str(pp))
+    # Guess file type (use guess_type for Python 3.12 compatibility)
+    mime_type, _ = mimetypes.guess_type(str(pp))
 
     # Get file's sha256
     digest = integrity.file_sha256(pp).hexdigest()
