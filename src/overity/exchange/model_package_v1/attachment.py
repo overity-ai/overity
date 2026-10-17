@@ -14,14 +14,11 @@ Attachment metadata encoder/decoder
 from __future__ import annotations
 
 import mimetypes
-
 from pathlib import Path
 
-from overity.model.ml_model.attachment import AttachmentMetadata
-from overity.exchange import integrity
-
 from overity.errors import AttachmentIntegrityError
-
+from overity.exchange import integrity
+from overity.model.ml_model.attachment import AttachmentMetadata
 
 ####################################################
 # Decoder

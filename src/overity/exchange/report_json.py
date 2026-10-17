@@ -13,33 +13,33 @@ Overity.ai report encoder/decoder
 
 from __future__ import annotations
 
+import base64
 import json
 import zlib
-import base64
-
-import plotly.io
-import plotly.graph_objects
-
-from typing import Any
+from datetime import datetime as dt
 from pathlib import Path
+from typing import Any
+
+import plotly.graph_objects
+import plotly.io
+
+from overity.model.general_info.method import MethodAuthor, MethodInfo, MethodKind
 from overity.model.report import (
     MethodExecutionStage,
     MethodExecutionStatus,
-    MethodReportLogItem,
     MethodReport,
+    MethodReportLogItem,
 )
-from overity.model.general_info.method import MethodKind, MethodAuthor, MethodInfo
+from overity.model.report.metrics import Metric
+from overity.model.report.metrics import from_data as metrics_from_data
+from overity.model.report.table import Table
 from overity.model.traceability import (
-    ArtifactKey,
     ArtifactGraph,
+    ArtifactKey,
+    ArtifactKind,
     ArtifactLink,
     ArtifactLinkKind,
-    ArtifactKind,
 )
-from overity.model.report.metrics import Metric, from_data as metrics_from_data
-from overity.model.report.table import Table
-from datetime import datetime as dt
-
 
 # --------------------------- Encoder
 

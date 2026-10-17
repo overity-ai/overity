@@ -13,18 +13,13 @@ List available bench abstractions in a given programme
 
 import logging
 import traceback
-
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-
-from overity.backend import program as b_program
 from overity.backend import bench as b_bench
-
+from overity.backend import program as b_program
 from overity.errors import ProgramNotFound
-
 from overity.frontend.utils import table as f_table
-
 
 log = logging.getLogger("frontend.bench.list_cmd")
 
@@ -44,9 +39,9 @@ def run(args: Namespace):
         benches, errors = b_bench.list_bench_abstractions(pdir)
 
         # Displaying results
-        print("")
+        print()
         print(f"Found the following bench abstractions in {pdir}:")
-        print("")
+        print()
 
         headers = ("Abstraction slug", "Abstraction name", "Description")
         rows = (
@@ -57,9 +52,9 @@ def run(args: Namespace):
         print(f_table.table_format(headers, rows))
 
         if errors:
-            print("")
+            print()
             print("While processing, the following errors has been found:")
-            print("")
+            print()
             for slug, err in errors:
                 print(f"- in {slug}: {err!s}")
 

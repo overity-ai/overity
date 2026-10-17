@@ -13,10 +13,9 @@ Show program informations
 
 import logging
 import traceback
-from textwrap import wrap
-
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
+from textwrap import wrap
 
 from overity.backend import program as program_backend
 from overity.errors import ProgramNotFound
@@ -38,21 +37,21 @@ def run(args: Namespace):
         prginfo = program_backend.infos(pdir)
 
         title_str = f"Program: {prginfo.display_name}"
-        print("")
+        print()
         print(title_str)
         print("=" * len(title_str))
-        print("")
+        print()
         print(f"- Slug:         {prginfo.slug}")
         print(f"- Created:      {prginfo.date_created}")
         print(
             f"- Initiated by: {prginfo.initiator.name} ({prginfo.initiator.email})"
             + (f": {prginfo.initiator.role}" if prginfo.initiator.role else "")
         )
-        print("")
+        print()
 
         if prginfo.description is not None:
             print("\n".join(wrap(prginfo.description, width=70)))
 
-    except ProgramNotFound as exc:
-        log.exception(str(exc))
+    except ProgramNotFound:
+        log.exception("Program not found")
         log.debug(traceback.format_exc())

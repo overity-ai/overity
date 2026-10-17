@@ -5,14 +5,17 @@ repos:
         language: system
         name: "Run linter"
         entry: just lint-rules
+        pass_filenames: false
 
       - id: check-headers
         language: system
         name: "Check source headers"
         entry: just lint-headers
+        pass_filenames: false
 
       - id: format
         language: system
         name: "Run black formatter"
         entry: just lint-format
+        pass_filenames: false
 

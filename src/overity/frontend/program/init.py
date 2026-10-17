@@ -12,11 +12,11 @@ Initialize program
 """
 
 import logging
-
-from datetime import date
 from argparse import ArgumentParser, Namespace
-from overity.backend import program as program_backend
+from datetime import date
 from pathlib import Path
+
+from overity.backend import program as program_backend
 
 log = logging.getLogger("frontend.program.init")
 

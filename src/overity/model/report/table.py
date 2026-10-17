@@ -12,8 +12,9 @@ Overity report data model for tables
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Self, Any
+from typing import Any, Self
 
 import pandas as pd
 

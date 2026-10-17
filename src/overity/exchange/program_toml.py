@@ -13,7 +13,6 @@ Program information storage in TOML format
 
 from datetime import date
 from pathlib import Path
-from typing import Dict
 
 import jsonschema
 import toml
@@ -57,13 +56,13 @@ SCHEMA = {
 ####################################################
 
 
-def _program_decode_initiator(data: Dict[str, any]):
+def _program_decode_initiator(data: dict[str, any]):
     return ProgramInitiator(
         name=data["name"], email=data["email"], role=data.get("role")
     )
 
 
-def _program_decode(data: Dict[str, any]):
+def _program_decode(data: dict[str, any]):
     program_info = data["program"]
     initiator_info = data["initiator"]
 

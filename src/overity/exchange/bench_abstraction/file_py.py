@@ -14,14 +14,12 @@ Parser for bench abstraction definition
 from __future__ import annotations
 
 import ast
-import sys
 import importlib.util
-
+import sys
 from pathlib import Path
-from overity.exchange.bench_abstraction import description_md
 
 from overity.errors import EmptyMethodDescription
-
+from overity.exchange.bench_abstraction import description_md
 
 ####################################################
 # Private interface
@@ -85,8 +83,8 @@ def import_definitions(path: Path):
             "Bench abstraction must define a BenchSettings dataclass and BenchDefinition class"
         )
 
-    BenchSettings = getattr(module, "BenchSettings")
-    BenchDefinition = getattr(module, "BenchDefinition")
+    BenchSettings = module.BenchSettings
+    BenchDefinition = module.BenchDefinition
 
     # TODO # Maybe add some conformity checks?
 

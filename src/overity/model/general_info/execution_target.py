@@ -12,7 +12,6 @@ Execution target information
 """
 
 from dataclasses import dataclass
-from typing import FrozenSet, Optional
 
 
 @dataclass
@@ -29,10 +28,10 @@ class ExecutionTarget:
 
     Example tags can be: SoC, MCU, etc.
     """
-    tags: FrozenSet[str]
+    tags: frozenset[str]
 
     """Optional description text."""
-    description: Optional[str] = None
+    description: str | None = None
 
     def __hash__(self):
         return hash(self.slug)

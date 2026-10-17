@@ -13,17 +13,13 @@ List available models for a given programme
 
 import logging
 import traceback
-
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from overity.backend import program as b_program
 from overity.backend import model as b_model
-
+from overity.backend import program as b_program
 from overity.errors import ProgramNotFound
-
 from overity.frontend.utils import table as f_table
-
 
 log = logging.getLogger("frontend.method.list_cmd")
 
@@ -43,9 +39,9 @@ def run(args: Namespace):
         models, errors = b_model.list_models(pdir)
 
         # Displaying results
-        print("")
+        print()
         print(f"Found the following models in {pdir}:")
-        print("")
+        print()
 
         headers = ("Model slug", "Model name")
         rows = (
@@ -59,12 +55,12 @@ def run(args: Namespace):
         print(f_table.table_format(headers, rows))
 
         if errors:
-            print("")
+            print()
             print("While processing, the following errors has been found:")
-            print("")
+            print()
             for slug, err in errors:
                 print(f"- in {slug!s}: {err!s}")
 
-    except ProgramNotFound as exc:
-        log.exception(str(exc))
+    except ProgramNotFound:
+        log.exception("Program not found")
         log.debug(traceback.format_exc())

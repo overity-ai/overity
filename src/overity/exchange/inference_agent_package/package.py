@@ -11,20 +11,16 @@ Inference agent packaging tools
 > information.
 """
 
-import tempfile
-import tarfile
 import json
-
+import tarfile
+import tempfile
 from pathlib import Path
 
+from overity.errors import MalformedAgentPackage
+from overity.exchange import integrity
+from overity.exchange.inference_agent_package import metadata as agent_metadata
 from overity.model.inference_agent.metadata import InferenceAgentMetadata
 from overity.model.inference_agent.package import InferenceAgentPackageInfo
-
-from overity.exchange.inference_agent_package import metadata as agent_metadata
-from overity.exchange import integrity
-
-from overity.errors import MalformedAgentPackage
-
 
 ####################################################
 # Create package

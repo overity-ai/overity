@@ -13,17 +13,13 @@ List available agents in a given programme
 
 import logging
 import traceback
-
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from overity.backend import program as b_program
 from overity.backend import inference_agent as b_agent
-
+from overity.backend import program as b_program
 from overity.errors import ProgramNotFound
-
 from overity.frontend.utils import table as f_table
-
 
 log = logging.getLogger("frontend.inference_agent.list_cmd")
 
@@ -44,9 +40,9 @@ def run(args: Namespace):
         agents, errors = b_agent.list_agents(pdir)
 
         # Displaying results
-        print("")
+        print()
         print(f"Found the following agents in {pdir}:")
-        print("")
+        print()
 
         headers = ("Agent slug", "Agent name")
         rows = (
@@ -60,12 +56,12 @@ def run(args: Namespace):
         print(f_table.table_format(headers, rows))
 
         if errors:
-            print("")
+            print()
             print("While processing, the following errors has been found:")
-            print("")
+            print()
             for slug, err in errors:
                 print(f"- in {slug}: {err!s}")
 
-    except ProgramNotFound as exc:
-        log.exception(exc)
+    except ProgramNotFound:
+        log.exception("Program not found")
         log.debug(traceback.format_exc())

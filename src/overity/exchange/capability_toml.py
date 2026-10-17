@@ -20,7 +20,6 @@ import toml
 
 from overity.model.general_info.capability import Capability
 
-
 ####################################################
 # Validation schema
 ####################################################

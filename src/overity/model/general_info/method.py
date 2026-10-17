@@ -14,8 +14,8 @@ Model classes to describe a method
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
 
 
 class MethodKind(Enum):

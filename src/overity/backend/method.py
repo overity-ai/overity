@@ -17,7 +17,6 @@ from pathlib import Path
 from overity.model.general_info.method import MethodKind
 from overity.storage.local import LocalStorage
 
-
 log = logging.getLogger("backend.methods")
 
 

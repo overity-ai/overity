@@ -12,7 +12,6 @@ Overity.ai model backend features
 """
 
 import logging
-
 from pathlib import Path
 
 from overity.storage.local import LocalStorage

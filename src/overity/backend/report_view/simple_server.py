@@ -13,7 +13,6 @@ Simple HTML server to display reports
 
 import logging
 
-
 log = logging.getLogger("backend.report_view.simple_server")
 
 

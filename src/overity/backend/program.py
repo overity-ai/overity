@@ -14,17 +14,14 @@ Overity.ai program backend features
 from __future__ import annotations
 
 import logging
+from datetime import date
 from pathlib import Path
 
 from overity.errors import ProgramNotFound
-from overity.storage.local import LocalStorage
 from overity.exchange import program_toml
-
-from overity.model.general_info.program import ProgramInitiator, ProgramInfo
-
+from overity.model.general_info.program import ProgramInfo, ProgramInitiator
+from overity.storage.local import LocalStorage
 from overity.utils.path import iter_path
-
-from datetime import date
 
 log = logging.getLogger("backend.program")
 

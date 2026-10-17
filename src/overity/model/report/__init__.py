@@ -13,20 +13,20 @@ Overity.ai model for reports
 
 from __future__ import annotations
 
-from enum import Enum
-from datetime import datetime as dt
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
+from datetime import datetime as dt
+from enum import Enum
+from typing import TYPE_CHECKING
 
-from overity.model.traceability import ArtifactGraph
+from pandas import DataFrame
+
 from overity.model.general_info.method import MethodInfo
 from overity.model.report.metrics import (
     Metric,
 )
 from overity.model.report.table import Table
-
-from typing import TYPE_CHECKING
-from pandas import DataFrame
+from overity.model.traceability import ArtifactGraph
 
 if TYPE_CHECKING:
     from plotly.graph_objects import Figure

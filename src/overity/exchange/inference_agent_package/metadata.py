@@ -23,7 +23,6 @@ from overity.model.inference_agent.metadata import (
     InferenceAgentMetadata,
 )
 
-
 ####################################################
 # Decoder
 ####################################################

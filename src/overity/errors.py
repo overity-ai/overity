@@ -13,8 +13,8 @@ Overity.ai toolkit errors
 
 from pathlib import Path
 
-from overity.model.report import MethodReportKind
 from overity.model.general_info.method import MethodKind
+from overity.model.report import MethodReportKind
 
 
 class EmptyMethodDescription(Exception):
@@ -203,7 +203,5 @@ class VersioningInconsistencyError(Exception):
 class AttachmentIntegrityError(Exception):
     def __init__(self, pp: Path, got_hash: str, expected_hash: str):
         super().__init__(
-            "Attachment integrity error for {}: expected {}, got {}".format(
-                pp, expected_hash, got_hash
-            )
+            f"Attachment integrity error for {pp}: expected {expected_hash}, got {got_hash}"
         )

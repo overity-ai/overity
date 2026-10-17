@@ -136,7 +136,7 @@ class ArtifactGraph:
         # combine all the generated sets.
         return reduce(
             frozenset.union,
-            map(lambda lk: frozenset({lk.a, lk.b}), self.links),
+            (frozenset({lk.a, lk.b}) for lk in self.links),
             frozenset(),
         )
 
@@ -147,7 +147,7 @@ class ArtifactGraph:
 
     def metadata_store(self, art: ArtifactKey, key: str, data: str):
         if art not in self.metadata:
-            self.metadata[art] = dict()
+            self.metadata[art] = {}
 
         self.metadata[art][key] = data
 

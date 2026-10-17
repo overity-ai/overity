@@ -14,7 +14,6 @@ Utilities to dump environment information
 import logging
 
 from overity.errors import NoBenchDefinedError
-
 from overity.model.report import MethodExecutionStage
 
 log = logging.getLogger("backend.environment")
@@ -41,7 +40,7 @@ def installed_packages():
     from importlib.metadata import distributions
 
     installed_packages_list = sorted(
-        ["%s==%s" % (i.metadata["Name"], i.version) for i in distributions()]
+        ["{}=={}".format(i.metadata["Name"], i.version) for i in distributions()]
     )
 
     return installed_packages_list

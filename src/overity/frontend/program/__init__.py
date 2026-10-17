@@ -15,8 +15,7 @@ from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace
 
-from overity.frontend.program import infos
-from overity.frontend.program import init
+from overity.frontend.program import infos, init
 
 CLI_SUBCOMMANDS = {"infos": infos, "init": init}
 

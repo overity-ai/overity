@@ -12,14 +12,12 @@ List reports of a given kind for a program
 """
 
 import logging
-
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from overity.backend import report as b_report
 from overity.backend import program as b_program
+from overity.backend import report as b_report
 from overity.frontend import types
-
 
 log = logging.getLogger("frontend.report.list")
 

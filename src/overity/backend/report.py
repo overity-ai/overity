@@ -12,7 +12,6 @@ Backend operations on reports
 """
 
 import logging
-
 from pathlib import Path
 
 from overity.model.report import MethodReportKind

@@ -16,33 +16,29 @@ Report HTML view for training/optimization reports
 from __future__ import annotations
 
 import datetime as dt
-
+from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from io import StringIO
 
 from jinja2 import Template
-
-from overity.model.traceability import ArtifactGraph, ArtifactKind
-from overity.model.report import (
-    MethodReport,
-    MethodExecutionStatus,
-    MethodExecutionStage,
-)
-from overity.model.report.metrics import (
-    Metric,
-    SimpleValue,
-    LinScaleValue,
-    LinRangeValue,
-    PercentageValue,
-)
-from overity.model.report.table import Table
-
 from plotly.graph_objects import Figure as PlotlyFigure
 
+from overity.model.report import (
+    MethodExecutionStage,
+    MethodExecutionStatus,
+    MethodReport,
+)
+from overity.model.report.metrics import (
+    LinRangeValue,
+    LinScaleValue,
+    Metric,
+    PercentageValue,
+    SimpleValue,
+)
+from overity.model.report.table import Table
+from overity.model.traceability import ArtifactGraph, ArtifactKind
 
-TEMPLATE_TXT = dedent(
-    """\
+TEMPLATE_TXT = dedent("""\
     <!doctype html>
     <html>
         <head>
@@ -409,8 +405,7 @@ TEMPLATE_TXT = dedent(
             </script>
         </body>
     </html>
-"""
-)
+""")
 
 
 def _generate_traceability_graph(graph: ArtifactGraph):
@@ -544,9 +539,7 @@ def render(report_data: MethodReport, report_path: Path | None = None):
     }
     installed_packages = [
         {"name": v[0], "version": v[1] if len(v) > 1 else "N.A."}
-        for v in map(
-            lambda x: x.split("=="), report_data.environment["installed_packages"]
-        )
+        for v in (x.split("==") for x in report_data.environment["installed_packages"])
     ]
 
     template_in_data = {

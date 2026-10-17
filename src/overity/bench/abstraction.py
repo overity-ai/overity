@@ -16,26 +16,24 @@ TODO: Parameters for base methods
 
 from __future__ import annotations
 
-import tempfile
 import logging
-
+import tempfile
 from abc import ABC, abstractmethod
+from pathlib import Path
 
-from overity.model.ml_model.metadata import MLModelMetadata
-from overity.model.traceability import (
-    ArtifactKind,
-    ArtifactLinkKind,
-    ArtifactKey,
-    ArtifactLink,
-    ArtifactGraph,
-)
 from overity.model.general_info.bench import (
     BenchAbstractionMetadata,
     BenchInstanciationMetadata,
 )
+from overity.model.ml_model.metadata import MLModelMetadata
+from overity.model.traceability import (
+    ArtifactGraph,
+    ArtifactKey,
+    ArtifactKind,
+    ArtifactLink,
+    ArtifactLinkKind,
+)
 from overity.storage.base import StorageBackend
-
-from pathlib import Path
 
 
 class BenchAbstraction(ABC):
@@ -168,17 +166,14 @@ class BenchAbstraction(ABC):
     @abstractmethod
     def __configure__(self, settings):
         """This method is implemented in children classes to configure the bench, given input settings"""
-        pass
 
     @abstractmethod
     def bench_start(self):
         """Called to start bench (open connections, etc.)"""
-        pass
 
     @abstractmethod
     def bench_cleanup(self):
         """Called to stop bench (close connections, remove temp files, etc.)"""
-        pass
 
     @abstractmethod
     def sanity_check(self):

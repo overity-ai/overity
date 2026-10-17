@@ -12,13 +12,12 @@ Command to view a report
 """
 
 import logging
-
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
+from overity.backend import program as b_program
+from overity.backend import report as b_report
 from overity.backend.report_view import simple_server, topt_html
-from overity.backend import program as b_program, report as b_report
-
 from overity.frontend import types
 
 log = logging.getLogger("frontend.report.view")
