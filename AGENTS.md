@@ -3,14 +3,14 @@
 This file documents the commands used for development tasks in the Overity.ai project.
 
 ## Type Checking
-- `hatch run types:check`: Run mypy for type checking.
+- `just lint-types`: Run mypy for type checking.
 
 ## Linting and Formatting
-- `hatch run lint:code-rules`: Lint the code using ruff.
-- `hatch run lint:code-format`: Format the code using black.
+- `just lint-rules`: Lint the code using ruff.
+- `just lint-format`: Format the code using black.
 
 ## Documentation
-- `hatch run docs:build`: Build the project documentation using mkdocs.
+- `just docs`: Build the project documentation using mkdocs.
 
 ## Project Structure
 
@@ -28,4 +28,4 @@ The `src/overity` folder contains the following subfolders:
 
 Test code is available in the `tests` folder
 
-To run tests, use the `hatch test -vv --cover` command
+To run tests, use the `just test` command

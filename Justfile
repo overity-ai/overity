@@ -17,6 +17,9 @@ ruff *args:
 black *args:
 	just uv run black {{args}}
 
+mypy *args:
+	just uv run mypy {{args}}
+
 
 ###########################################
 # Project recipes
@@ -30,7 +33,7 @@ docs:
 
 
 test py=default_python_version:
-	just uv run --python {{py}} pytest -vv
+	just uv run --python {{py}} pytest --cov=src/overity -vv
 
 lint-headers:
 	just uv run scripts/header_check.py src
@@ -40,3 +43,6 @@ lint-rules:
 
 lint-format:
 	just black src
+
+lint-types:
+	just mypy src

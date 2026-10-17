@@ -74,6 +74,7 @@ dev = [
 lint = [
 	"ruff",
 	"black",
+	"mypy",
 ]
 
 test = [
