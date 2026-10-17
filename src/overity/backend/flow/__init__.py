@@ -15,84 +15,70 @@ from __future__ import annotations
 
 import atexit
 import logging
-import tempfile
 import sys
+import tempfile
 import traceback
-
-from pathlib import Path
-from functools import partial
-
+from contextlib import contextmanager
 from datetime import datetime as dt
+from functools import partial
+from pathlib import Path
 
-from overity.backend import program
+import pandas as pd
+import plotly.tools as pl_tools
+from matplotlib.figure import Figure as MplFigure
+from plotly.graph_objects import Figure as PlotlyFigure
+
 from overity.backend import bench as b_bench
-
-from overity.storage.local import LocalStorage
-
-from overity.model.general_info.method import MethodKind
-from overity.model.report import (
-    MethodExecutionStatus,
-    MethodExecutionStage,
-    MethodReport,
-    MethodReportKind,
+from overity.backend import program
+from overity.backend.flow import environment as b_env
+from overity.backend.flow.arguments import ArgumentParser
+from overity.backend.flow.ctx import FlowCtx, RunMode
+from overity.errors import (
+    DuplicateFigureError,
+    InvalidEpochValue,
+    NotInDMQError,
+    UnidentifiedMethodError,
+    UninitAPIError,
+    VersioningInconsistencyError,
 )
-
+from overity.exchange import report_json
+from overity.exchange.method_common import file_ipynb, file_py
+from overity.exchange.model_package_v1 import attachment as exch_attachment
+from overity.model.dataset.metadata import (
+    DatasetAuthor,
+    DatasetMaintainer,
+    DatasetMetadata,
+)
+from overity.model.dataset.package import DatasetPackageInfo
+from overity.model.general_info.method import MethodKind
 from overity.model.ml_model.metadata import (
     MLModelAuthor,
     MLModelMaintainer,
     MLModelMetadata,
 )
 from overity.model.ml_model.package import MLModelPackage
-
-from overity.model.dataset.metadata import (
-    DatasetAuthor,
-    DatasetMaintainer,
-    DatasetMetadata,
+from overity.model.report import (
+    MethodExecutionStage,
+    MethodExecutionStatus,
+    MethodReport,
+    MethodReportKind,
 )
-
-from overity.model.dataset.package import DatasetPackageInfo
-
-from overity.model.traceability import (
-    ArtifactKind,
-    ArtifactKey,
-    ArtifactLinkKind,
-    ArtifactLink,
-)
-
 from overity.model.report.metrics import (
-    Metric,
-    SimpleValue,
-    LinScaleValue,
     LinRangeValue,
+    LinScaleValue,
+    Metric,
     PercentageValue,
+    SimpleValue,
 )
-
 from overity.model.report.table import Table
-
-from overity.model.versioning import VersioningStatus
-
-from overity.exchange import report_json
-from overity.exchange.method_common import file_py, file_ipynb
-from overity.errors import (
-    UnidentifiedMethodError,
-    UninitAPIError,
-    NotInDMQError,
-    InvalidEpochValue,
-    DuplicateFigureError,
-    VersioningInconsistencyError,
+from overity.model.traceability import (
+    ArtifactKey,
+    ArtifactKind,
+    ArtifactLink,
+    ArtifactLinkKind,
 )
-from overity.exchange.model_package_v1 import attachment as exch_attachment
-
-from overity.backend.flow.ctx import FlowCtx, RunMode
-from overity.backend.flow import environment as b_env
-from overity.backend.flow.arguments import ArgumentParser
-
-from contextlib import contextmanager
-
-from matplotlib.figure import Figure as MplFigure
-from plotly.graph_objects import Figure as PlotlyFigure
-import plotly.tools as pl_tools
-import pandas as pd
+from overity.model.versioning import VersioningStatus
+from overity.storage.local import LocalStorage
 
 log = logging.getLogger("backend.flow")
 
@@ -869,15 +855,7 @@ class MetricSaver:
                     output_str += (
                         self._var(metric_key, f"{metric_value.value:.3f}") + "\n"
                     )
-                elif isinstance(metric_value, LinScaleValue):
-                    output_str += (
-                        self._var(
-                            metric_key,
-                            f"{metric_value.value:.3f} ({metric_value.low:.3f}/{metric_value.high:.3f})",
-                        )
-                        + "\n"
-                    )
-                elif isinstance(metric_value, LinRangeValue):
+                elif isinstance(metric_value, (LinScaleValue, LinRangeValue)):
                     output_str += (
                         self._var(
                             metric_key,
@@ -950,7 +928,7 @@ def epoch_metric_df(ctx: FlowCtx, key: str):
 @_api_guard
 def graph_save_mpl(ctx: FlowCtx, identifier: str, fig: MplFigure):
     """Saves a matplotlib figure (by converting it to a plotly figure)"""
-    log.info("-> Save matplotlib figure {}".format(identifier))
+    log.info(f"-> Save matplotlib figure {identifier}")
 
     if identifier in ctx.report.graphs:
         raise DuplicateFigureError(identifier)
@@ -965,7 +943,7 @@ def graph_save_mpl(ctx: FlowCtx, identifier: str, fig: MplFigure):
 @_api_guard
 def graph_save_plotly(ctx: FlowCtx, identifier: str, fig: PlotlyFigure):
     """Saves a plotly figure into the report"""
-    log.info("-> Save plotly figure {}".format(identifier))
+    log.info(f"-> Save plotly figure {identifier}")
 
     if identifier in ctx.report.graphs:
         raise DuplicateFigureError(identifier)
@@ -1040,15 +1018,13 @@ def table_save_dict(ctx: FlowCtx, identifier: str, data: list[dict], caption: st
 
     if not data:
         # Handle empty data case
-        table = Table(
-            identifier=identifier, caption=caption, columns=tuple(), rows=tuple()
-        )
+        table = Table(identifier=identifier, caption=caption, columns=(), rows=())
     else:
         # Get all unique column names from all dictionaries, preserving order of first appearance
         seen = set()
         columns = []
         for row_dict in data:
-            for key in row_dict.keys():
+            for key in row_dict:
                 if key not in seen:
                     columns.append(key)
                     seen.add(key)

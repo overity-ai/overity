@@ -33,8 +33,7 @@ def table_format(headers, rows):
         for j, col in enumerate(row):
             s_col = str(col)
 
-            if len(s_col) > nlong_str[j]:
-                nlong_str[j] = len(s_col)
+            nlong_str[j] = max(nlong_str[j], len(s_col))
 
             formatted_row[j] = s_col
         formatted_rows[i] = tuple(formatted_row)

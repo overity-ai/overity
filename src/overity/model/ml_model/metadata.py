@@ -12,7 +12,6 @@ ML Model metadata model
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 from overity.model.ml_model.attachment import AttachmentMetadata
 
@@ -28,7 +27,7 @@ class MLModelAuthor:
     email: str
 
     """Optional string describing what its contribution was to the model"""
-    contribution: Optional[str] = None
+    contribution: str | None = None
 
 
 @dataclass
@@ -53,10 +52,10 @@ class MLModelMetadata:
     version: str
 
     """List of authors"""
-    authors: List[MLModelAuthor]
+    authors: list[MLModelAuthor]
 
     """List of maitainers"""
-    maintainers: List[MLModelMaintainer]
+    maintainers: list[MLModelMaintainer]
 
     """Execution target identifier for ML model
 
@@ -74,7 +73,7 @@ class MLModelMetadata:
     model_file: str
 
     """List of attachments available in the model archive"""
-    attachments: List[AttachmentMetadata] = field(default_factory=list)
+    attachments: list[AttachmentMetadata] = field(default_factory=list)
 
     """Optional identification string indicating which model this model derives from"""
-    derives: Optional[str] = None
+    derives: str | None = None

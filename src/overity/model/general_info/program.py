@@ -13,7 +13,6 @@ Model class for program information
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Optional
 
 
 @dataclass
@@ -27,7 +26,7 @@ class ProgramInitiator:
     email: str
 
     """Optional role for this person in its organization"""
-    role: Optional[str] = None
+    role: str | None = None
 
 
 @dataclass
@@ -50,4 +49,4 @@ class ProgramInfo:
     active: bool
 
     """An optioanl description can act as a tagline to tell what the program is for"""
-    description: Optional[str] = None
+    description: str | None = None

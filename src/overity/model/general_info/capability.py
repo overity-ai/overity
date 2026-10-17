@@ -12,6 +12,7 @@ Model class for bench capability identification
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 

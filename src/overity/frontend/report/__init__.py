@@ -13,7 +13,7 @@ Overity.ai frontend commands to manipulate reports
 
 from argparse import ArgumentParser, Namespace
 
-from overity.frontend.report import view, list_cmd, prune
+from overity.frontend.report import list_cmd, prune, view
 
 CLI_SUBCOMMANDS = {view, list_cmd, prune}
 

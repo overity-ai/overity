@@ -15,16 +15,13 @@ import logging
 import os
 import subprocess
 import sys
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from argparse import ArgumentParser, Namespace
-
-from overity.backend import program as b_program
 from overity.backend import method as b_method
-
+from overity.backend import program as b_program
 from overity.frontend import types
 from overity.model.general_info.method import MethodKind
-
 
 log = logging.getLogger("frontend.method.run_cmd")
 
@@ -128,7 +125,7 @@ def run(args: Namespace):
         log.info(f"Executing command: {' '.join(cmd)}")
 
         # Run the method and capture exit code
-        result = subprocess.run(cmd, capture_output=False, text=True)
+        result = subprocess.run(cmd, capture_output=False, text=True, check=False)
 
         # Exit with the return code of the run command (Step 5)
         sys.exit(result.returncode)

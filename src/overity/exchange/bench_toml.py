@@ -13,12 +13,12 @@ Bench toml definition parser
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import jsonschema
 import toml
 
-from pathlib import Path
 from overity.model.general_info.bench import BenchInstanciationMetadata
-
 
 ####################################################
 # Validation schema

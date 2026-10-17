@@ -13,63 +13,52 @@ Local storage implementation
 TODO: fix inconsistencies with slug extraction
 """
 
-import logging
 import itertools
+import logging
 import traceback
 from pathlib import Path
 
-from overity.model.general_info.method import MethodKind, MethodInfo
+from overity.errors import (
+    AgentNotFound,
+    DatasetNotFound,
+    DuplicateSlugError,
+    MethodNotFound,
+    ModelNotFound,
+    NoVersionAvailable,
+    ReportNotFound,
+    UnidentifiedMethodError,
+    UnknownMethodFormatError,
+)
+from overity.exchange import (
+    bench_toml,
+    capability_toml,
+    execution_target_toml,
+    integrity,
+    program_toml,
+    report_json,
+)
+from overity.exchange.bench_abstraction import file_py as bench_abstraction_py
+from overity.exchange.dataset_package import package as dataset_package
+from overity.exchange.inference_agent_package import package as agent_package
+from overity.exchange.method_common import file_ipynb, file_py
+from overity.exchange.model_package_v1 import package as ml_package
+from overity.model.dataset.metadata import DatasetMetadata
+from overity.model.dataset.package import DatasetPackageInfo
 from overity.model.general_info.bench import (
     BenchAbstractionMetadata,
     BenchInstanciationMetadata,
 )
-from overity.model.ml_model.metadata import MLModelMetadata
-from overity.model.ml_model.package import MLModelPackage
-from overity.model.ml_model.attachment import ExtractedAttachment
-from overity.model.report import MethodReportKind, MethodExecutionStatus
-
+from overity.model.general_info.method import MethodInfo, MethodKind
 from overity.model.inference_agent.metadata import InferenceAgentMetadata
 from overity.model.inference_agent.package import InferenceAgentPackageInfo
-
-from overity.model.dataset.metadata import DatasetMetadata
-from overity.model.dataset.package import DatasetPackageInfo
-
+from overity.model.ml_model.attachment import ExtractedAttachment
+from overity.model.ml_model.metadata import MLModelMetadata
+from overity.model.ml_model.package import MLModelPackage
+from overity.model.report import MethodExecutionStatus, MethodReportKind
 from overity.model.versioning import VersioningStatus
-
+from overity.storage.base import HashObject, StorageBackend
 from overity.utils import git as git_utils
 from overity.utils import path as path_utils
-
-
-from overity.exchange import (
-    execution_target_toml,
-    program_toml,
-    report_json,
-    capability_toml,
-    bench_toml,
-)
-
-from overity.exchange.bench_abstraction import file_py as bench_abstraction_py
-
-from overity.storage.base import StorageBackend, HashObject
-from overity.exchange.method_common import file_ipynb, file_py
-
-from overity.errors import (
-    DuplicateSlugError,
-    UnidentifiedMethodError,
-    ModelNotFound,
-    AgentNotFound,
-    DatasetNotFound,
-    ReportNotFound,
-    MethodNotFound,
-    NoVersionAvailable,
-    UnknownMethodFormatError,
-)
-
-from overity.exchange.model_package_v1 import package as ml_package
-from overity.exchange.inference_agent_package import package as agent_package
-from overity.exchange.dataset_package import package as dataset_package
-from overity.exchange import integrity
-
 
 log = logging.getLogger("Local storage")
 
@@ -697,22 +686,18 @@ class LocalStorage(StorageBackend):
 
     def preparation_reports(self):
         """Get a list of identifiers for prepration reports in program"""
-        return tuple(
-            map(lambda x: x.stem, self.preparation_reports_folder.glob("*.json"))
-        )
+        return tuple(x.stem for x in self.preparation_reports_folder.glob("*.json"))
 
     def optimization_reports(self):
         """Get list of identifiers for optimization reports in program"""
 
-        return tuple(
-            map(lambda x: x.stem, self.optimization_reports_folder.glob("*.json"))
-        )
+        return tuple(x.stem for x in self.optimization_reports_folder.glob("*.json"))
 
     def execution_reports(self):
         """Get list of execution reports in program"""
 
         return tuple(
-            map(lambda x: x.stem, self.execution_reports_folder.glob("*.json")),
+            (x.stem for x in self.execution_reports_folder.glob("*.json")),
         )
 
     def analysis_reports(self, include_all: bool = False):
@@ -741,9 +726,11 @@ class LocalStorage(StorageBackend):
                 report = report_json.from_file(report_file)
 
                 # If include_all is False, only include successful reports
-                if not include_all:
-                    if report.status != MethodExecutionStatus.ExecutionSuccess:
-                        continue
+                if (
+                    not include_all
+                    and report.status != MethodExecutionStatus.ExecutionSuccess
+                ):
+                    continue
 
                 valid_reports.append(report_file.stem)
 

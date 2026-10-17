@@ -13,14 +13,15 @@ Overity.ai commands for CLI
 
 import sys
 
-from overity.frontend import program
-from overity.frontend import method
-from overity.frontend import model
-from overity.frontend import inference_agent
-from overity.frontend import bench
-from overity.frontend import dataset
-from overity.frontend import report
-
+from overity.frontend import (
+    bench,
+    dataset,
+    inference_agent,
+    method,
+    model,
+    program,
+    report,
+)
 
 CLI_GROUPS = {program, method, model, inference_agent, bench, report, dataset}
 

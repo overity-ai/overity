@@ -22,7 +22,6 @@ from overity.model.dataset.metadata import (
     DatasetMetadata,
 )
 
-
 ####################################################
 # Decoder
 ####################################################

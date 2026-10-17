@@ -14,24 +14,21 @@ Overity.ai flow context
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
+from io import TextIOWrapper
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from io import TextIOWrapper
 
-from overity.model.general_info.program import ProgramInfo
-from overity.model.general_info.method import MethodKind
-from overity.storage.local import LocalStorage
-from overity.model.report import MethodReport, MethodExecutionStage
-from overity.model.traceability import ArtifactKey
-
-from overity.model.general_info.bench import (
-    BenchInstanciationMetadata,
-    BenchAbstractionMetadata,
-)
 from overity.bench.abstraction import BenchAbstraction
-
-
-from enum import Enum
+from overity.model.general_info.bench import (
+    BenchAbstractionMetadata,
+    BenchInstanciationMetadata,
+)
+from overity.model.general_info.method import MethodKind
+from overity.model.general_info.program import ProgramInfo
+from overity.model.report import MethodExecutionStage, MethodReport
+from overity.model.traceability import ArtifactKey
+from overity.storage.local import LocalStorage
 
 
 class RunMode(Enum):

@@ -13,29 +13,28 @@ Manage arguments for methods
 
 from __future__ import annotations
 
+from argparse import ArgumentParser as CmdArgs
+from typing import Any
+
+from overity.backend.flow.ctx import FlowCtx, RunMode
+from overity.errors import DuplicateArgumentNameError
 from overity.model.arguments import (
     ArgumentSchema,
-    OptionSchema,
     FlagSchema,
     ListSchema,
+    OptionSchema,
 )
-from overity.backend.flow.ctx import FlowCtx, RunMode
-
-from overity.errors import DuplicateArgumentNameError
-
-from argparse import ArgumentParser as CmdArgs
-from typing import Dict, Any
 
 
 class ArgumentParser:
     def __init__(self, ctx: FlowCtx):
         self.ctx = ctx
 
-        self.schema: Dict[
+        self.schema: dict[
             str, ArgumentSchema | OptionSchema | FlagSchema | ListSchema
         ] = {}
 
-        self.parsed_vars: Dict[str, Any] = {}  # Parsed arguments values are stored here
+        self.parsed_vars: dict[str, Any] = {}  # Parsed arguments values are stored here
 
     def add_argument(self, name: str, help: str):
         if name in self.schema:

@@ -13,8 +13,8 @@ Model definition for report metrics
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -23,16 +23,14 @@ class Metric(ABC):
     @abstractmethod
     def kind(cls) -> str:
         """Get value kind encoding string"""
-        pass
 
     @abstractmethod
     def data(self) -> dict[str, Any]:
         """Output data dict."""
-        pass
 
     @classmethod
     @abstractmethod
-    def from_data(cls, data: dict[str, Any]) -> "Metric":
+    def from_data(cls, data: dict[str, Any]) -> Metric:
         pass
 
 
@@ -48,7 +46,7 @@ class SimpleValue(Metric):
         return {"kind": self.kind(), "value": self.value}
 
     @classmethod
-    def from_data(cls, data: dict[str, Any]) -> "SimpleValue":
+    def from_data(cls, data: dict[str, Any]) -> SimpleValue:
         return cls(value=data["value"])
 
 
@@ -71,7 +69,7 @@ class LinScaleValue(Metric):
         }
 
     @classmethod
-    def from_data(cls, data: dict[str, Any]) -> "LinScaleValue":
+    def from_data(cls, data: dict[str, Any]) -> LinScaleValue:
         return cls(
             low=float(data["low"]),
             high=float(data["high"]),
@@ -98,7 +96,7 @@ class LinRangeValue(Metric):
         }
 
     @classmethod
-    def from_data(cls, data: dict[str, Any]) -> "LinRangeValue":
+    def from_data(cls, data: dict[str, Any]) -> LinRangeValue:
         return cls(
             low=int(data["low"]),
             high=int(data["high"]),
@@ -121,7 +119,7 @@ class PercentageValue(Metric):
         }
 
     @classmethod
-    def from_data(cls, data: dict[str, Any]) -> "PercentageValue":
+    def from_data(cls, data: dict[str, Any]) -> PercentageValue:
         return cls(value=float(data["value"]))
 
 

@@ -12,7 +12,6 @@ Execution target storage in TOML format
 """
 
 from pathlib import Path
-from typing import Dict
 
 import jsonschema
 import toml
@@ -48,7 +47,7 @@ SCHEMA = {
 ####################################################
 
 
-def _execution_target_decode(slug: str, data: Dict[str, any]):
+def _execution_target_decode(slug: str, data: dict[str, any]):
     target_info = data["target"]
 
     return ExecutionTarget(

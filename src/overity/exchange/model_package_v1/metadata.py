@@ -16,14 +16,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from overity.exchange.model_package_v1 import attachment
 from overity.model.ml_model.metadata import (
     MLModelAuthor,
     MLModelMaintainer,
     MLModelMetadata,
 )
-
-from overity.exchange.model_package_v1 import attachment
-
 
 ####################################################
 # Decoder

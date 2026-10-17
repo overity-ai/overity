@@ -16,17 +16,14 @@ from __future__ import annotations
 import json
 import tarfile
 import tempfile
-
 from pathlib import Path
 
-from overity.exchange.model_package_v1 import metadata as ml_metadata
+from overity.errors import MalformedModelPackage
 from overity.exchange import integrity
-
+from overity.exchange.model_package_v1 import metadata as ml_metadata
+from overity.model.ml_model.attachment import AttachmentMetadata, ExtractedAttachment
 from overity.model.ml_model.metadata import MLModelMetadata
 from overity.model.ml_model.package import MLModelPackage
-from overity.model.ml_model.attachment import AttachmentMetadata, ExtractedAttachment
-
-from overity.errors import MalformedModelPackage
 
 
 def package_archive_create(model_data: MLModelPackage, output_path: Path):
@@ -89,9 +86,10 @@ def _process_model_file(
             f"Indicated model_file, '{metadata.model_file}', is not found in archive",
         )
 
-    with open(target_folder / metadata.model_file, "wb") as ftarget, tf.extractfile(
-        model_file
-    ) as fmod:
+    with (
+        open(target_folder / metadata.model_file, "wb") as ftarget,
+        tf.extractfile(model_file) as fmod,
+    ):
         ftarget.write(fmod.read())
         ftarget.flush()
 

@@ -12,19 +12,17 @@ Overity.ai command to prune unsucessful reports
 """
 
 import logging
-
 from argparse import ArgumentParser, Namespace
-from pathlib import Path
 from functools import partial
+from pathlib import Path
 
-from overity.backend import report as b_report
 from overity.backend import program as b_program
+from overity.backend import report as b_report
 from overity.frontend import types
-
 from overity.model.report import (
-    MethodReportKind,
-    MethodExecutionStatus,
     MethodExecutionStage,
+    MethodExecutionStatus,
+    MethodReportKind,
 )
 
 log = logging.getLogger("frontend.report.prune")
@@ -82,7 +80,7 @@ def _check_report(
 
     # Try to parse report information
     try:
-        report_path, report_info = b_report.load_info(pdir, kind, uuid)
+        _report_path, report_info = b_report.load_info(pdir, kind, uuid)
 
         if (report_info.stage == MethodExecutionStage.Preview) and (not keep_preview):
             print("Remove preview")

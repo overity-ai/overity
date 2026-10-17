@@ -12,13 +12,12 @@ Git utilities
 """
 
 from __future__ import annotations
-from typing import Self
 
 import subprocess
-
-from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Self
 
 from overity.utils.path import iter_path
 
@@ -70,6 +69,7 @@ def git_status(repo_path: str) -> list[GitStatusEntry]:
     try:
         result = subprocess.run(
             cmd,
+            check=False,
             capture_output=True,
             text=True,
             cwd=str(repo_path),
@@ -183,8 +183,7 @@ def nearest_repo(cwd: Path) -> Path | None:
             if is_repo(subpath):
                 return subpath
 
-        else:
-            return None
+        return None
 
 
 def farthest_repo(cwd: Path) -> Path | None:
@@ -226,6 +225,7 @@ def current_commit(repo_path: str | Path) -> str:
     try:
         result = subprocess.run(
             cmd,
+            check=False,
             capture_output=True,
             text=True,
             cwd=str(repo_path),

@@ -15,20 +15,19 @@ TODO: This is a duplicate of description_md from method parser. This may need so
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
-from pathlib import Path
 
 from overity.model.general_info.bench import (
     BenchAbstractionAuthor,
     BenchAbstractionMetadata,
 )
 
-
 # --------------------------- Grammar
 
-_GRAMMAR = Grammar(
-    r"""
+_GRAMMAR = Grammar(r"""
     method_desc           = display_name fields author_list description
 
     display_name          = md_h1_title emptyline+
@@ -62,8 +61,7 @@ _GRAMMAR = Grammar(
     hash                  = ~r"\#"
     ws                    = ~r"\s"
     nl                    = ~r"\n"
-"""
-)
+""")
 
 
 # --------------------------- Node visitor

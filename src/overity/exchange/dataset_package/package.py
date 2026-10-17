@@ -11,20 +11,16 @@ Dataset packaging tools
 > information.
 """
 
-import tempfile
-import tarfile
 import json
-
+import tarfile
+import tempfile
 from pathlib import Path
 
+from overity.errors import MalformedDatasetPackage
+from overity.exchange import integrity
+from overity.exchange.dataset_package import metadata as dataset_metadata
 from overity.model.dataset.metadata import DatasetMetadata
 from overity.model.dataset.package import DatasetPackageInfo
-
-from overity.exchange.dataset_package import metadata as dataset_metadata
-from overity.exchange import integrity
-
-from overity.errors import MalformedDatasetPackage
-
 
 ####################################################
 # Create package

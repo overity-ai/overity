@@ -12,7 +12,6 @@ Integrity utilities
 """
 
 import hashlib
-
 from pathlib import Path
 
 

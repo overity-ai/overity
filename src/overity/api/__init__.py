@@ -14,19 +14,17 @@ Overity.ai API for method writing
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from contextlib import contextmanager
+from pathlib import Path
 
-from overity.backend import flow
-from overity.errors import UnknownMethodError
-
-from overity.backend.flow.ctx import FlowCtx, RunMode
-from overity.model.report import MethodReportKind, MethodReport
-
+import pandas as pd
 from matplotlib.figure import Figure as MplFigure
 from plotly.graph_objects import Figure as PlotlyFigure
-import pandas as pd
 
+from overity.backend import flow
+from overity.backend.flow.ctx import FlowCtx, RunMode
+from overity.errors import UnknownMethodError
+from overity.model.report import MethodReport, MethodReportKind
 
 # Initialize global flow object
 _CTX = FlowCtx.default()

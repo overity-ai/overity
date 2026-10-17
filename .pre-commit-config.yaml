@@ -4,14 +4,18 @@ repos:
       - id: lint
         language: system
         name: "Run linter"
-        entry: hatch run lint:code-rules
-
-      - id: format
-        language: system
-        name: "Run black formatter"
-        entry: hatch run lint:code-format
+        entry: just lint-rules
+        pass_filenames: false
 
       - id: check-headers
         language: system
         name: "Check source headers"
-        entry: hatch run lint:code-headers
+        entry: just lint-headers
+        pass_filenames: false
+
+      - id: format
+        language: system
+        name: "Run black formatter"
+        entry: just lint-format
+        pass_filenames: false
+

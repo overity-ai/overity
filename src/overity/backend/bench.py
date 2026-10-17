@@ -12,12 +12,11 @@ Overity.ai bench management backend features
 """
 
 import logging
-
 from pathlib import Path
 
+from overity.errors import BenchInstanciationError, InvalidBenchSettingsError
 from overity.storage.base import StorageBackend
 from overity.storage.local import LocalStorage
-from overity.errors import InvalidBenchSettingsError, BenchInstanciationError
 
 log = logging.getLogger("backend.bench")
 

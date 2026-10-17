@@ -13,8 +13,7 @@ Command subgroup for bench related manipulations
 
 from argparse import ArgumentParser, Namespace
 
-from overity.frontend.bench import list_cmd, list_abstractions_cmd
-
+from overity.frontend.bench import list_abstractions_cmd, list_cmd
 
 CLI_SUBCOMMANDS = {list_cmd, list_abstractions_cmd}
 

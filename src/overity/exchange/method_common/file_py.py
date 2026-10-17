@@ -16,9 +16,9 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from overity.model.general_info.method import MethodKind
 from overity.errors import EmptyMethodDescription
 from overity.exchange.method_common import description_md
+from overity.model.general_info.method import MethodKind
 
 # --------------------------- Private interface
 
